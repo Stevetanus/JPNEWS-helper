@@ -5,6 +5,26 @@ let session_l;
 let session_t_jp_en;
 let session_s;
 let pageId = '';
+chrome.commands.onCommand.addListener((command, tab) => {
+    if (command === 'toggle-sidebar') {
+        console.log('[JPNEWS] Processing toggle-sidebar command');
+        console.log('[JPNEWS] Sending toggle-sidebar message to tab:', tab.id);
+        // Check if tab is ready
+        if (tab.status !== 'complete') {
+            console.warn('[JPNEWS] Tab is not ready, status:', tab.status);
+        }
+        // Send a message to the content script in the active tab
+        chrome.tabs
+            .sendMessage(tab.id, { action: 'toggle-sidebar' })
+            .then((response) => {
+            console.log('[JPNEWS] Message sent successfully, response:', response);
+        })
+            .catch((error) => {
+            console.error('[JPNEWS] Error sending message:', error);
+            console.error('[JPNEWS] Error details:', error.message);
+        });
+    }
+});
 chrome.tabs.onUpdated.addListener((tabId, tab) => {
     console.log('Tab updated:', { tabId }, { tab });
     if (tab.status === 'complete') {
@@ -109,8 +129,7 @@ chrome.runtime.onConnect.addListener((port) => {
                 (async () => {
                     try {
                         const raw = await analyzeText(text);
-                        const storageKey = `${pageId}-raw`;
-                        chrome.storage.local.set({ [storageKey]: { raw, savedAt: Date.now() } }, () => console.log(`Saved analysis result for ${pageId}`));
+                        await setToStorage('raw', { raw, savedAt: Date.now() });
                         let words = [];
                         try {
                             words = safeParseModelJson(raw);
@@ -146,8 +165,7 @@ chrome.runtime.onConnect.addListener((port) => {
                     try {
                         console.log('[JPNEWS] Summarizing text:', text);
                         const sum = await summarizeText(text);
-                        const storageKey = `${pageId}-sum`;
-                        chrome.storage.local.set({ [storageKey]: { sum, savedAt: Date.now() } }, () => console.log(`Saved summary for ${pageId}`));
+                        await setToStorage('sum', { sum, saveAt: Date.now() });
                         port.postMessage({
                             action,
                             success: true,
@@ -212,8 +230,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             try {
                 console.log('[JPNEWS] Analyzing text:', text);
                 const raw = await analyzeText(text);
-                const storageKey = `${pageId}-raw`;
-                chrome.storage.local.set({ [storageKey]: { raw, savedAt: Date.now() } }, () => console.log(`Saved analysis result for ${pageId}`));
+                await setToStorage('raw', { raw, saveAt: Date.now() });
                 let words = [];
                 try {
                     words = safeParseModelJson(raw);
@@ -238,8 +255,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             try {
                 console.log('[JPNEWS] Summarizing text:', text);
                 const sum = await summarizeText(text);
-                const storageKey = `${pageId}-sum`;
-                chrome.storage.local.set({ [storageKey]: { sum, savedAt: Date.now() } }, () => console.log(`Saved summary for ${pageId}`));
+                await setToStorage('sum', { sum, savedAt: Date.now() });
                 sendResponse({
                     success: true,
                     data: { sum, count: sum.length },
@@ -323,47 +339,48 @@ async function translateText(text) {
     console.log('Translation result:', result);
     return result;
 }
-async function summarizeText(text) {
-    let sum = await new Promise((resolve) => {
-        const ki = `${pageId}-sum`;
+// 共用函式
+async function getFromStorage(key) {
+    const ki = `${pageId}-${key}`;
+    return new Promise((resolve) => {
         chrome.storage.local.get(ki, (res) => {
             if (res[ki]) {
-                console.log('找到之前的分析結果:', res[ki]);
-                resolve(res[ki].sum);
+                console.log('找到之前的結果:', res[ki]);
+                resolve(res[ki]); // 回傳值
             }
             else {
-                console.log('沒有分析過這篇摘要要呼叫 API');
-                resolve(null);
+                console.log('沒有找到 key:', ki);
+                resolve(null); // 沒有的話回 null
             }
         });
     });
-    if (sum) {
-        console.log('Using cached analysis:', sum);
-        return sum;
+}
+// 存入共用函式
+async function setToStorage(key, value) {
+    const ki = `${pageId}-${key}`;
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ [ki]: value }, () => {
+            console.log('已存入:', ki, value);
+            resolve();
+        });
+    });
+}
+async function summarizeText(text) {
+    let sumStorage = await getFromStorage('sum');
+    if (sumStorage) {
+        console.log('Using cached analysis:', sumStorage.sum);
+        return sumStorage.sum;
     }
     const response = await session_s.summarize(text);
     return response;
-    // 未來在處理看看 stream
+    // 未來再處理看看 stream
     // const stream = await session_s.summarizeStreaming(text);
     // return stream;
 }
 async function analyzeText(text) {
-    let raw = await new Promise((resolve) => {
-        const ki = `${pageId}-raw`;
-        chrome.storage.local.get(ki, (res) => {
-            if (res[ki]) {
-                console.log('找到之前的分析結果:', res[ki]);
-                resolve(res[ki].raw);
-            }
-            else {
-                console.log('沒有分析過這篇，要呼叫 API');
-                resolve(null);
-            }
-        });
-    });
-    if (raw) {
-        console.log('Using cached analysis:', raw);
-        return raw;
+    const rawStorage = await getFromStorage('raw');
+    if (rawStorage) {
+        return rawStorage.raw;
     }
     const schema = {
         type: 'array',
@@ -395,15 +412,12 @@ async function analyzeText(text) {
     return response;
 }
 // 儲存訊息
-function saveChatMessage(msg) {
+async function saveChatMessage(msg) {
+    console.log('saving msg: ', { msg });
     const ki = `${pageId}-chat`;
-    chrome.storage.local.get(ki, (res) => {
-        const chatLog = res[ki] || [];
-        chatLog.push(msg);
-        chrome.storage.local.set({ [ki]: chatLog }, () => {
-            console.log('Message saved');
-        });
-    });
+    const chatLog = (await getFromStorage('chat')) || [];
+    chatLog.push(msg);
+    await setToStorage('chat', chatLog);
 }
 // 讀取聊天歷史
 function getChatLog() {
@@ -416,20 +430,66 @@ function getChatLog() {
 }
 async function promptLanguageModel(text) {
     // 1️⃣ 取得歷史聊天紀錄
-    let chatLog = await getChatLog();
-    // 2️⃣ 將聊天紀錄轉成文字 prompt
-    let context = chatLog
-        .map((msg) => {
-        if (msg.user === 'me')
-            return `User: ${msg.text}`;
-        else
-            return `AI: ${msg.text}`;
-    })
-        .join('\n');
-    // 3️⃣ 加上新的使用者訊息
-    const finalPrompt = `
-    You are a Japanese learning assistant now. Based on previous vocabulary you given, **generate a natural answer to the user's question**. If the user prompt is too away from the topic of the news, just answer a little bit. If the user asks a normal question, answer briefly in 3 to 5 sentences, 
-and make sure the answer is not longer than the user's question. You always answered in English, but can use a little bit Japanese.
+    let chatLog = (await getFromStorage('chat')) || [];
+    let sumStorge = await getFromStorage('sum');
+    let rawStorage = await getFromStorage('raw');
+    let sum = sumStorge ? sumStorge.sum : '';
+    let raw = rawStorage ? rawStorage.raw : '';
+    let words = safeParseModelJson(raw);
+    let englishVocabulary = '';
+    let japaneseVocabulary = '';
+    words.forEach((wordArr, i) => {
+        if (i) {
+            englishVocabulary += `, ${wordArr.english}`;
+            japaneseVocabulary += `, ${wordArr.japanese}`;
+        }
+        else {
+            englishVocabulary += wordArr.english;
+            japaneseVocabulary += wordArr.japanese;
+        }
+    });
+    let finalPrompt = '';
+    if (!sum && !words.length) {
+        // 沒有背景或單字，先給簡單提示
+        finalPrompt = `
+    You are a Japanese learning assistant. Currently, you don't have the news summary or vocabulary.
+    Please reply briefly: tell the user to press the **Summarize** button or **Vocabulary** button first.
+    Keep your answer short and friendly.
+
+    User: ${text}
+    AI:
+  `;
+        // if (!sum) {
+        //   summarizeText(text).catch((err) =>
+        //     console.log('no summary before! try running!', { err })
+        //   );
+        // }
+        // if (!words.length) {
+        //   analyzeText(text).catch((err) =>
+        //     console.log('no vocabulary before! try running!', { err })
+        //   );
+        // }
+    }
+    else {
+        // 2️⃣ 將聊天紀錄轉成文字 prompt
+        let context = chatLog
+            .map((msg) => {
+            if (msg.user === 'me')
+                return `User: ${msg.text}`;
+            else
+                return `AI: ${msg.text}`;
+        })
+            .join('\n');
+        let backgroundPrompt = sum
+            ? `Background about the news: ${sum}.`
+            : `No background about the news. Recommend user to press **Summarize** button.`;
+        let wordsPrompt = words.length
+            ? `Words system know in English: ${englishVocabulary}. Words system know in Japanese: ${japaneseVocabulary}.`
+            : `No background about the vocabulary in the news. Recommend users to press **Vocabulary** button.`;
+        // 3️⃣ 加上新的使用者訊息
+        finalPrompt = `
+    You are a Japanese learning assistant who read through the news now. ${backgroundPrompt} ${wordsPrompt} Based on background and previous vocabulary you given, **generate a natural answer to the user's question**. If the user prompt is too away from the topic of the news, just answer a little bit. If the user asks a normal question, answer briefly in 3 to 5 sentences,
+and make sure the answer is not longer than the user's question. You always answer in English and teach at least 1 Japanese word in the reply. At the end of your response, include a short and dirverse encouraging phrase in Japanese with English translation.
 
     Conversation history:
     ${context}
@@ -437,6 +497,7 @@ and make sure the answer is not longer than the user's question. You always answ
     User: ${text}
     AI:
     `;
+    }
     console.log({ finalPrompt, session_l });
     // 4️⃣ 呼叫語言模型
     const response = (await session_l.prompt(finalPrompt.trim())).trim();
@@ -447,8 +508,8 @@ and make sure the answer is not longer than the user's question. You always answ
         text: response,
         timestamp: Date.now(),
     };
-    saveChatMessage(userMsg);
-    saveChatMessage(aiMsg);
+    await saveChatMessage(userMsg);
+    await saveChatMessage(aiMsg);
     return response;
 }
 async function initializeLanguageModel() {
@@ -544,15 +605,18 @@ function safeParseModelJson(raw) {
         return [];
     }
 }
-function jsonToTSV(words) {
-    // 先加入表頭
-    const header = ['English', 'Chinese', 'Japanese'].join('\t');
-    // 每個物件的欄位用 tab 連接
-    const rows = words.map((w) => [w.english, w.chinese, w.japanese].join('\t'));
-    // header + rows，用換行連接
-    return [header, ...rows].join('\n');
-}
+/**
+ * 將 JSON 陣列轉成 TSV 字串
+ */
+// function jsonToTSV(words: Word[]): string {
+//   // 先加入表頭
+//   const header = ['English', 'Chinese', 'Japanese'].join('\t');
+//   // 每個物件的欄位用 tab 連接
+//   const rows = words.map((w) => [w.english, w.chinese, w.japanese].join('\t'));
+//   // header + rows，用換行連接
+//   return [header, ...rows].join('\n');
+// }
 // Check commands on startup
-// chrome.commands.getAll((commands) => {
-//   console.log('[JPNEWS] Commands available on startup:', commands);
-// });
+chrome.commands.getAll((commands) => {
+    console.log('[JPNEWS] Commands available on startup:', commands);
+});

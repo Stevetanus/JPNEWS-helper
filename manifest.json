@@ -7,6 +7,15 @@
     "background": {
       "service_worker": "dist/background.js"
     },
+    "commands": {
+      "toggle-sidebar": {
+        "suggested_key": {
+          "default": "Ctrl+J",
+          "mac": "Ctrl+J"
+          },
+        "description": "Toggle the sidebar"
+        }
+    },
     "content_scripts": [
       {
         "matches": ["https://www3.nhk.or.jp/news/easy/*"],

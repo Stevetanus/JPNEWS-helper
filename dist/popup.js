@@ -12,10 +12,15 @@ updateStatusBtn.addEventListener('click', async () => {
         // const status = await fetchFeatureStatus();
         const status = await fetchFeatureStatusViaPort(port);
         console.log('最新狀態:', status);
+        // 之後試看看透過其他按鈕去預先取資料
+        return;
         // ✅ 這裡就可以拿 status 去做其他操作
         const allReady = Object.values(status).every((f) => f.success);
         if (allReady) {
             await featchBackGroundInfo();
+            // chrome.runtime.sendMessage({
+            //   action: 'open-chat',
+            // });
         }
     }
     catch (err) {
@@ -162,17 +167,19 @@ async function analyzeAllViaPort(port, rawNews) {
         });
     };
     try {
-        // const [translation, summary, analysis] = await Promise.all([
-        const [translation, summary] = await Promise.all([
+        const [translation, summary, analysis] = await Promise.all([
             sendPortMessage('translate-text', rawNews),
             sendPortMessage('summarize-text', rawNews),
-            // sendPortMessage('analyze-text', rawNews),
+            sendPortMessage('analyze-text', rawNews),
         ]);
+        // const [translation, summary] = await Promise.all([
+        //   sendPortMessage('translate-text', rawNews),
+        //   sendPortMessage('summarize-text', rawNews),
+        //   // sendPortMessage('analyze-text', rawNews),
+        // ]);
         // try analyzing in background
-        sendPortMessage('analyze-text', rawNews);
+        // sendPortMessage('analyze-text', rawNews);
         console.log('lucky lucky');
-        console.log('Translate:', translation);
-        console.log('Summarize:', summary);
         // 全部完成後顯示結果
         // main.style.display = 'block';
         overlay.style.display = 'none';

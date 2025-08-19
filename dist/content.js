@@ -31,6 +31,7 @@ const ACTION = {
     content_TEXT: 'analyze-text',
 };
 // content.js
+let mainStatus = 'empty';
 let buttons = null;
 let toggleButtons = [];
 let summarizeBtn = null;
@@ -47,9 +48,11 @@ let chat = null;
 let chatForm = null;
 let chatInput = null;
 let sendBtn = null;
+let switchBtn = null;
 let isChatOpen = false;
 let userMsgList = [];
 let botMsgList = [];
+let controlsDiv = null;
 let prevBtn = null;
 let nextBtn = null;
 function createSidebar() {
@@ -113,10 +116,13 @@ function createSidebar() {
     overlay = document.createElement('div');
     overlay.id = 'jpnews-overlay';
     overlay.style.position = 'absolute';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
+    overlay.style.top = '56px';
+    overlay.style.left = '8px';
+    const observer = new ResizeObserver(() => {
+        overlay.style.width = main.offsetWidth + 'px';
+        overlay.style.height = main.offsetHeight + 'px';
+    });
+    observer.observe(main);
     overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)'; // 半透明白色
     overlay.style.display = 'flex';
     overlay.style.justifyContent = 'center';
@@ -143,8 +149,8 @@ function createSidebar() {
     document.head.appendChild(style);
     // 加入 spinner 到 overlay
     overlay.appendChild(spinner);
-    // // 把 overlay 加到 main 裡
-    main.appendChild(overlay);
+    // 把 overlay 加到 sidebar 裡
+    sidebar.appendChild(overlay);
     // 建立容器
     chatForm = document.createElement('form');
     chatForm.style.width = '100%';
@@ -154,15 +160,35 @@ function createSidebar() {
     chatForm.style.backgroundColor = '#f9f9f9';
     chatForm.style.border = 'none';
     chatForm.style.fontSize = '16px';
+    // 建立切換按鈕
+    // switchBtn = document.createElement('button');
+    // switchBtn.type = 'submit';
+    // switchBtn.innerText = '^';
+    // switchBtn.style.width = '40px';
+    // switchBtn.style.padding = '8px 12px';
+    // switchBtn.style.border = 'none';
+    // switchBtn.style.backgroundColor = '#4caf50';
+    // switchBtn.style.color = '#fff';
+    // switchBtn.style.borderRadius = '4px';
+    // switchBtn.style.cursor = 'pointer';
+    // switchBtn.style.display = 'flex';
+    // switchBtn.style.justifyContent = 'center';
+    // switchBtn.style.alignItems = 'center';
     // 建立輸入框
     chatInput = document.createElement('input');
     chatInput.id = 'chatInputId';
     chatInput.name = 'chatInputName';
     chatInput.type = 'text';
-    chatInput.disabled = true;
-    chatInput.placeholder = 'Learn Vocabulary First';
+    chatInput.placeholder = 'Better start with buttons!!!';
     chatInput.style.flex = '1';
     chatInput.style.borderRadius = '4px';
+    chatInput.setAttribute('autocomplete', 'off');
+    chatInput.addEventListener('focus', () => {
+        closeSummarizeAnalyzeBtns();
+        if (mainStatus !== 'chat') {
+            renderChatPage(currentPage);
+        }
+    });
     // chat log
     // chatLog = document.createElement('div');
     // 建立送出按鈕
@@ -176,7 +202,11 @@ function createSidebar() {
     sendBtn.style.color = '#fff';
     sendBtn.style.borderRadius = '4px';
     sendBtn.style.cursor = 'pointer';
+    sendBtn.style.display = 'flex';
+    sendBtn.style.justifyContent = 'center';
+    sendBtn.style.alignItems = 'center';
     // 把輸入框和按鈕加到表單
+    // chatForm.appendChild(switchBtn);
     chatForm.appendChild(chatInput);
     chatForm.appendChild(sendBtn);
     // 把表單加到 body
@@ -188,22 +218,17 @@ function createSidebar() {
         if (value) {
             console.log('送出的訊息:', value);
             showOverlay();
+            closeSummarizeAnalyzeBtns();
+            disableElements();
             chatInput.value = '';
-            chatInput.disabled = true;
             chrome.runtime.sendMessage({
                 action: 'send-prompt',
                 text: value,
             }, (apiResponse) => {
-                toggleButtons.forEach((btn) => {
-                    if (btn.innerText === 'Translate')
-                        return;
-                    if (btn.dataset.active === 'true') {
-                        btn.click();
-                    }
-                });
                 addChatMessage(value, apiResponse.data.reply);
                 hideOverlay();
-                chatInput.disabled = false;
+                enableElements();
+                mainStatus = 'chat';
                 console.log('API 回應:', { apiResponse });
             });
         }
@@ -211,6 +236,16 @@ function createSidebar() {
     let chatHistory = [];
     let currentPage = 0;
     // const messagesPerPage = 5; // 每頁顯示幾條對話
+    // close the buttons besides Translate button
+    function closeSummarizeAnalyzeBtns() {
+        toggleButtons.forEach((btn) => {
+            if (btn.innerText === 'Translate')
+                return;
+            if (btn.dataset.active === 'true') {
+                btn.click();
+            }
+        });
+    }
     // 新增訊息時也更新按鈕狀態
     function addChatMessage(userText, botText) {
         chatHistory.push({ user: userText, bot: botText });
@@ -244,31 +279,68 @@ function createSidebar() {
         prevBtn.disabled = currentPage <= 0;
         nextBtn.disabled = currentPage >= chatHistory.length - 1;
     }
+    /**
+     *
+     * 製作換頁按鈕
+     */
     function createPrevNextBtn() {
-        if (prevBtn && nextBtn)
+        if (controlsDiv) {
+            controlsDiv.style.display = 'flex';
+        }
+        if (controlsDiv && prevBtn && nextBtn)
             return;
         // 前一則按鈕
+        controlsDiv = document.createElement('div');
+        controlsDiv.style.display = 'flex';
+        controlsDiv.style.justifyContent = 'space-between';
+        controlsDiv.style.gap = '4px';
+        controlsDiv.style.position = 'absolute';
+        controlsDiv.style.right = '16px';
+        controlsDiv.style.bottom = '106px';
+        controlsDiv.style.padding = '4px';
+        controlsDiv.style.zIndex = '999';
+        controlsDiv.style.backgroundColor = 'lightgrey';
         prevBtn = document.createElement('button');
         prevBtn.textContent = 'Prev';
-        prevBtn.style.position = 'absolute';
-        prevBtn.style.bottom = '106px';
-        prevBtn.style.right = '76px'; // 留空間給 next 按鈕
         prevBtn.disabled = true; // 初始禁用
         prevBtn.style.zIndex = '999';
         prevBtn.style.fontSize = '16px';
         prevBtn.style.padding = '4px';
-        sidebar.appendChild(prevBtn);
+        controlsDiv.appendChild(prevBtn);
         // 下一則按鈕
         nextBtn = document.createElement('button');
         nextBtn.textContent = 'Next';
-        nextBtn.style.position = 'absolute';
-        nextBtn.style.bottom = '106px';
-        nextBtn.style.right = '16px';
         nextBtn.disabled = true; // 初始禁用
         nextBtn.style.zIndex = '999';
         nextBtn.style.fontSize = '16px';
         nextBtn.style.padding = '4px';
-        sidebar.appendChild(nextBtn);
+        controlsDiv.appendChild(nextBtn);
+        sidebar?.appendChild(controlsDiv);
+        // --- hover 控制 ---
+        let hideTimer = null;
+        // 顯示控制列
+        function showControls() {
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
+            controlsDiv.style.opacity = '1';
+        }
+        // 隱藏控制列
+        function hideControls() {
+            controlsDiv.style.opacity = '0';
+        }
+        // 進入 main
+        main?.addEventListener('mouseenter', () => {
+            showControls();
+            hideTimer = setTimeout(hideControls, 1000); // 2 秒後自動隱藏
+        });
+        // 進入 controlsDiv（保持顯示）
+        controlsDiv.addEventListener('mouseenter', showControls);
+        // 離開 controlsDiv（延遲隱藏）
+        controlsDiv.addEventListener('mouseleave', () => {
+            hideTimer = setTimeout(hideControls, 200);
+        });
         // 前一則
         prevBtn.addEventListener('click', () => {
             if (currentPage > 0) {
@@ -293,7 +365,6 @@ function createSidebar() {
     // buttons.style.height = '40px';
     buttons.style.gap = '4px';
     // buttons.style.marginBottom = '4px';
-    // 使用範例
     // 使用範例
     const labels = ['Summarize', 'Translate', 'Vocabulary'];
     const callbacks = [
@@ -332,6 +403,15 @@ function createSidebar() {
     sidebar.appendChild(content);
     document.body.appendChild(sidebar);
     makeDraggable(header, sidebar);
+    // Ctrl + J 打開/關閉 sidebar
+    window.addEventListener('keydown', closeSidebar);
+    function closeSidebar(e) {
+        console.log('remove');
+        if (e.key === 'Escape') {
+            sidebar.remove();
+            window.removeEventListener('keydown', closeSidebar);
+        }
+    }
 }
 function createMutuallyExclusiveToggles(labels, callbacks) {
     const buttons = [];
@@ -408,33 +488,32 @@ function makeDraggable(dragHandle, el) {
         document.onmousemove = null;
     }
 }
-// Ctrl + J 打開/關閉 sidebar
-document.addEventListener('keydown', toggleSidebar);
 function toggleSidebar(e) {
-    if (e) {
-        if (e.ctrlKey && e.key.toLowerCase() === 'j') {
-            if (sidebar && document.body.contains(sidebar)) {
-                sidebar.remove();
-                sidebar = null;
-                isChatOpen = false;
-            }
-            else {
-                createSidebar();
-                isChatOpen = true;
-            }
-        }
+    // if (e) {
+    //   if (e.key === 'Escape') {
+    //     if (sidebar && document.body.contains(sidebar)) {
+    //       sidebar.remove();
+    //       window.removeEventListener('keydown', toggleSidebar);
+    //     }
+    //   } else if (e.ctrlKey && e.key.toLowerCase() === 'j') {
+    //     if (sidebar && document.body.contains(sidebar)) {
+    //       sidebar.remove();
+    //       window.removeEventListener('keydown', toggleSidebar);
+    //     } else {
+    //       createSidebar();
+    //       isChatOpen = true;
+    //     }
+    //   }
+    // } else {
+    if (sidebar && document.body.contains(sidebar)) {
+        sidebar.remove();
+        window.removeEventListener('keydown', toggleSidebar);
     }
     else {
-        if (sidebar && document.body.contains(sidebar)) {
-            sidebar.remove();
-            sidebar = null;
-            isChatOpen = false;
-        }
-        else {
-            createSidebar();
-            isChatOpen = true;
-        }
+        createSidebar();
+        isChatOpen = true;
     }
+    // }
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'flashcard-added') {
@@ -475,8 +554,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         console.log('[JPNEWS] Content script sent url to backend:');
         return true;
     }
-    else if (msg.action === 'open-chat') {
-        console.log('open-chat');
+    else if (msg.action === 'toggle-sidebar') {
+        console.log('[JKNEWS] toggling sidebar!');
         toggleSidebar();
         sendResponse({
             success: true,
@@ -484,18 +563,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 isChatOpen,
             },
         });
-        return true;
-    }
-    else if (msg.action === 'close-chat') {
-        console.log('close-chat');
-        toggleSidebar();
-        sendResponse({
-            success: true,
-            data: {
-                isChatOpen,
-            },
-        });
-        return true;
     }
     else if (msg.action === 'check-chat') {
         console.log('check-chat', { isChatOpen });
@@ -533,9 +600,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 async function analyzeNews() {
     showOverlay();
+    disableElements();
     // 再傳給 background.js 去呼叫 API
     chrome.runtime.sendMessage({ action: 'analyze-text', text: rawNews }, (apiResponse) => {
-        hideOverlay();
         console.log('API 回應:', { apiResponse });
         if (typeof apiResponse.data.analyzation === 'string') {
             const div = document.createElement('div');
@@ -611,16 +678,22 @@ async function analyzeNews() {
         main.appendChild(table);
         if (chatInput) {
             chatInput.placeholder = 'Enter Thoughts...';
-            chatInput.disabled = false;
+        }
+        hideOverlay();
+        enableElements();
+        mainStatus = 'analyze';
+        chatInput.placeholder = 'Enter thoughts...';
+        if (controlsDiv) {
+            controlsDiv.style.display = 'none';
         }
     });
 }
 async function summarizeNews() {
     // 再傳給 background.js 去呼叫 API
     showOverlay();
+    disableElements();
     chrome.runtime.sendMessage({ action: 'summarize-text', text: rawNews }, (apiResponse) => {
         console.log('summarize text: ', apiResponse);
-        hideOverlay();
         // 先清空舊內容
         cleanMain();
         if (!apiResponse.data.sum) {
@@ -632,6 +705,13 @@ async function summarizeNews() {
         const div = document.createElement('div');
         div.innerText = apiResponse.data.sum;
         main?.appendChild(div);
+        hideOverlay();
+        enableElements();
+        mainStatus = 'sum';
+        chatInput.placeholder = 'Enter thoughts...';
+        if (controlsDiv) {
+            controlsDiv.style.display = 'none';
+        }
     });
 }
 async function translateNews(close = false) {
@@ -640,6 +720,16 @@ async function translateNews(close = false) {
         document.querySelectorAll('[id^="jp_news-"]').forEach((el) => el.remove());
     }
     else {
+        const h1 = document.querySelector('.article-title');
+        chrome.runtime.sendMessage({
+            action: 'translate-text',
+            text: h1.innerText,
+        }, (apiResponse) => {
+            console.log('文字翻譯:', { apiResponse });
+            if (isChatOpen) {
+                h1.insertAdjacentHTML('afterend', `<div id=jp_news-title>${apiResponse.data.translation}</div>`);
+            }
+        });
         document.querySelectorAll('#js-article-body p').forEach((p, i) => chrome.runtime.sendMessage({
             action: 'translate-text',
             text: p.innerText,
@@ -654,15 +744,43 @@ async function translateNews(close = false) {
     return true;
 }
 const cleanMain = () => {
-    console.log('cleaning!');
     Array.from(main.children).forEach((child) => {
-        console.log({ child });
-        if (child.id !== 'jpnews-overlay') {
-            main.removeChild(child);
-        }
+        // console.log({ child });
+        // if (child.id !== 'jpnews-overlay') {
+        //   main!.removeChild(child);
+        // }
+        main.removeChild(child);
     });
+    mainStatus = 'empty';
+    if (controlsDiv) {
+        controlsDiv.style.display = 'none';
+    }
     console.log({ overlay });
 };
+function disableElements() {
+    chatInput.disabled = true;
+    chatInput.style.cursor = 'not-allowed';
+    sendBtn.disabled = true;
+    sendBtn.style.cursor = 'not-allowed';
+    toggleButtons.forEach((btn) => {
+        if (btn.innerText !== 'Translate') {
+            btn.disabled = true;
+            btn.style.cursor = 'not-allowed';
+        }
+    });
+}
+function enableElements() {
+    chatInput.disabled = false;
+    chatInput.style.cursor = 'text';
+    sendBtn.disabled = false;
+    sendBtn.style.cursor = 'pointer';
+    toggleButtons.forEach((btn) => {
+        if (btn.innerText !== 'Translate') {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+        }
+    });
+}
 function hideOverlay() {
     console.log('hide', { overlay });
     if (overlay) {
