@@ -3,6 +3,8 @@ console.log('[JPNEWS] ===== CONTENT SCRIPT LOADED =====');
 console.log('[JPNEWS] Content script loaded at:', new Date().toISOString());
 console.log('[JPNEWS] URL:', window.location.href);
 console.log('[JPNEWS] Document ready state:', document.readyState);
+
+/*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
 // 只在 NHK Easy News 網頁執行
 if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
@@ -32,8 +34,6 @@ const ACTION = {
   content_TEXT: 'analyze-text',
 };
 
-// content.js
-
 let mainStatus: 'chat' | 'sum' | 'analyze' | 'empty' = 'empty';
 let buttons: HTMLDivElement | null = null;
 let toggleButtons: HTMLButtonElement[] = [];
@@ -45,6 +45,7 @@ let header: HTMLDivElement | null = null;
 let content: HTMLDivElement | null = null;
 let main: HTMLDivElement | null = null;
 let bgOverlay: HTMLDivElement | null = null;
+/*** overlay to cover chat screen */
 let overlay: HTMLDivElement | null = null;
 let spinner: HTMLDivElement | null = null;
 let chat: HTMLDivElement | null = null;
@@ -89,7 +90,6 @@ function createSidebar() {
 
   // 內容區
   content = document.createElement('div');
-  // content.style.padding = '10px';
   content.style.gap = '8px';
   content.style.display = 'flex';
   content.style.flexDirection = 'column';
@@ -107,24 +107,8 @@ function createSidebar() {
   main.style.paddingRight = '4px';
   content.appendChild(main);
 
-  // 先確保 main 可以當定位父層
   main.style.position = 'relative';
 
-  // 建立一個跟 main 一樣大小的透明 div
-  bgOverlay = document.createElement('div');
-  bgOverlay.id = 'jpnews-bg-overlay';
-  bgOverlay.style.position = 'absolute';
-  bgOverlay.style.top = main.offsetTop + 'px';
-  bgOverlay.style.left = main.offsetLeft + 'px';
-  bgOverlay.style.width = main.offsetWidth + 'px';
-  bgOverlay.style.height = main.offsetHeight + 'px';
-  bgOverlay.style.backgroundColor = 'transparent';
-  bgOverlay.style.zIndex = '0';
-
-  // 把 bgOverlay 插到 main 前面（main 的背後）
-  content.insertBefore(bgOverlay, main);
-
-  // 建立 overlay
   overlay = document.createElement('div');
   overlay.id = 'jpnews-overlay';
   overlay.style.position = 'absolute';
@@ -163,9 +147,8 @@ function createSidebar() {
   }
   `;
   document.head.appendChild(style);
-  // 加入 spinner 到 overlay
+
   overlay.appendChild(spinner);
-  // 把 overlay 加到 sidebar 裡
   sidebar.appendChild(overlay);
 
   // 建立容器
@@ -209,9 +192,6 @@ function createSidebar() {
       renderChatPage(currentPage);
     }
   });
-
-  // chat log
-  // chatLog = document.createElement('div');
 
   // 建立送出按鈕
   sendBtn = document.createElement('button');
@@ -265,7 +245,6 @@ function createSidebar() {
   });
   let chatHistory: { user: string; bot: string }[] = [];
   let currentPage = 0;
-  // const messagesPerPage = 5; // 每頁顯示幾條對話
 
   // close the buttons besides Translate button
   function closeSummarizeAnalyzeBtns() {
@@ -313,10 +292,7 @@ function createSidebar() {
     prevBtn!.disabled = currentPage <= 0;
     nextBtn!.disabled = currentPage >= chatHistory.length - 1;
   }
-  /**
-   *
-   * 製作換頁按鈕
-   */
+  /** 製作換頁按鈕 */
   function createPrevNextBtn() {
     if (controlsDiv) {
       controlsDiv.style.display = 'flex';
@@ -408,9 +384,7 @@ function createSidebar() {
   buttons = document.createElement('div');
   buttons.style.display = 'flex';
   buttons.style.justifyContent = 'space-between';
-  // buttons.style.height = '40px';
   buttons.style.gap = '4px';
-  // buttons.style.marginBottom = '4px';
 
   // 使用範例
   const labels = ['Summarize', 'Translate', 'Vocabulary'];
@@ -422,35 +396,8 @@ function createSidebar() {
 
   toggleButtons = createMutuallyExclusiveToggles(labels, callbacks);
 
-  // 加到頁面
-  // const container = document.getElementById('main-controls')!;
+  // 加進 buttons
   toggleButtons.forEach((btn) => buttons!.appendChild(btn));
-
-  // summarizeBtn = document.createElement('button');
-  // summarizeBtn.innerText = 'Summarize';
-  // summarizeBtn.style.padding = '4px 6px';
-  // summarizeBtn.style.fontSize = '12px';
-  // summarizeBtn.style.cursor = 'pointer';
-  // summarizeBtn.addEventListener('click', summarizeNews);
-
-  // translateBtn = document.createElement('button');
-  // translateBtn.innerText = 'Translate';
-  // translateBtn.style.padding = '4px 6px';
-  // translateBtn.style.fontSize = '12px';
-  // translateBtn.style.cursor = 'pointer';
-
-  // analyzeBtn = document.createElement('button');
-  // analyzeBtn.id = 'analyzeBtnContent';
-  // analyzeBtn.innerText = 'Analyze Text';
-  // analyzeBtn.style.padding = '4px 6px';
-  // analyzeBtn.style.fontSize = '12px';
-  // analyzeBtn.style.cursor = 'pointer';
-  // analyzeBtn.addEventListener('click', analyzeNews);
-
-  // buttons.appendChild(analyzeBtn);
-  // buttons.appendChild(summarizeBtn);
-  // buttons.appendChild(translateBtn);
-  // 插入到容器最前面
 
   sidebar.appendChild(header);
   content.insertBefore(buttons, chatForm);
@@ -564,22 +511,6 @@ function makeDraggable(dragHandle: HTMLElement, el: HTMLElement) {
 }
 
 function toggleSidebar(e?: KeyboardEvent) {
-  // if (e) {
-  //   if (e.key === 'Escape') {
-  //     if (sidebar && document.body.contains(sidebar)) {
-  //       sidebar.remove();
-  //       window.removeEventListener('keydown', toggleSidebar);
-  //     }
-  //   } else if (e.ctrlKey && e.key.toLowerCase() === 'j') {
-  //     if (sidebar && document.body.contains(sidebar)) {
-  //       sidebar.remove();
-  //       window.removeEventListener('keydown', toggleSidebar);
-  //     } else {
-  //       createSidebar();
-  //       isChatOpen = true;
-  //     }
-  //   }
-  // } else {
   if (sidebar && document.body.contains(sidebar)) {
     sidebar.remove();
     window.removeEventListener('keydown', toggleSidebar);
@@ -587,7 +518,6 @@ function toggleSidebar(e?: KeyboardEvent) {
     createSidebar();
     isChatOpen = true;
   }
-  // }
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -601,7 +531,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .forEach((p) => (result += (p as HTMLParagraphElement).innerText + '\n'));
     sendResponse({ text: result });
     rawNews = result; // 儲存原始新聞內容
-
     return true; // 表示會異步回應
   } else if (msg.action === 'toggle-sidebar') {
     toggleSidebar();
@@ -626,25 +555,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       toggleVoc.disabled = false;
     }
   }
-
-  if (msg.action === 'status') {
-    content!.innerHTML = ''; // 清空內容區
-    if (msg.status === 'waiting') {
-      content!.innerText = '⏳ 分析中...';
-      // translateBtn.disabled = true;
-      // analyzeBtn.disabled = true;
-    } else if (msg.status === 'done') {
-      content!.innerText = '✅ 完成！';
-      // translateBtn.disabled = false;
-      // analyzeBtn.disabled = false;
-    } else if (msg.status === 'error') {
-      content!.innerText = '❌ 失敗了，請再試一次';
-      // translateBtn.disabled = false;
-      // analyzeBtn.disabled = false;
-    }
-  }
 });
-
+/** analyze news and create 10 vocabulary */
 async function analyzeNews() {
   showOverlay();
   disableElements();
@@ -680,24 +592,6 @@ async function analyzeNews() {
       const table = document.createElement('table');
       table.style.borderCollapse = 'collapse';
       table.style.height = '40px';
-      // table.innerHTML = `
-      //   <tr>
-      //     <th style="border:1px solid #ccc; padding:4px;">English</th>
-      //     <th style="border:1px solid #ccc; padding:4px;">Japanese</th>
-      //     <th style="border:1px solid #ccc; padding:4px;">Description</th>
-      //   </tr>
-      //     ${apiResponse.data.analyzation
-      //       .map(
-      //         (w) => `
-      //       <tr>
-      //         <td style="border:1px solid #ccc; padding:4px;">${w.english}</td>
-      //         <td style="border:1px solid #ccc; padding:4px;">${w.japanese}</td>
-      //         <td style="border:1px solid #ccc; padding:4px;">${w.description}</td>
-      //       </tr>
-      //               `
-      //       )
-      //       .join('')}`;
-
       table.innerHTML = `
         <tr>
           <th style="border:1px solid #ccc; padding:4px;">English</th>
@@ -759,7 +653,7 @@ async function analyzeNews() {
     }
   );
 }
-
+/** summarize news */
 async function summarizeNews() {
   // 再傳給 background.js 去呼叫 API
   showOverlay();
@@ -794,7 +688,7 @@ async function summarizeNews() {
     }
   );
 }
-
+/** translate news title and content  */
 async function translateNews(close = false) {
   if (close) {
     // 移除先前插入的翻譯
