@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "target": "esnext",
+    "lib": ["dom", "esnext"],
+    "types": ["chrome"],
+    "module": "esnext",
+    "strict": true
+  },
+  "include": ["src"]
+}
+

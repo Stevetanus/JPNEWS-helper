@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="origin-trial"
+      content="AnlT7gRo/750gGKtoI/A3D2rL5yAQA9wISlLqHGE6vJQinPfk0HiIij5LhWs+iuB7mTeotXmEXkvdpOAC1YjAgAAAG97Im9yaWdpbiI6ImNocm9tZS1leHRlbnNpb246Ly9sampoamFha21uY2lib25uanBhb2dsYmhjamVvbGhrayIsImZlYXR1cmUiOiJJQ2Fubm90QmVsaWV2ZVlvdVdhc3RlZFlvdXJUaW1lRGVjb2RpbmdUaGlzIiwiZXhwaXJ5Ijo1NzI1NDA3OTk5fQ=="
+    />
+    <title>JP News Helper</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        width: 250px;
+        padding: 10px;
+      }
+      .loading a {
+        pointer-events: none;
+        cursor: not-allowed;
+        opacity: 0.5; /* 視覺上灰掉 */
+      }
+      button {
+        margin: 5px 0;
+        width: 100%;
+      }
+      #close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: transparent;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+      }
+      #main {
+        position: relative;
+      }
+      /* 遮罩 */
+      #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8); /* 半透明白 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999; /* 確保蓋在最上層 */
+      }
+      #spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #ccc;
+        border-top-color: #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="close">✖</div>
+    <h3>JP News Helper</h3>
+    <button style="display: none" id="translator-btn">translate</button>
+    <button style="display: none" id="language-model-btn">chat</button>
+    <button style="display: none" id="summarizer-btn">summarize</button>
+    <p>JP News Helper help you learn NHK News Easy articles</p>
+    <p>
+      Used Three API provided by Google:
+      <a
+        href="https://developer.chrome.com/docs/ai/translator-api"
+        target="_blank"
+        >Translator</a
+      >,
+      <a href="https://developer.chrome.com/docs/ai/prompt-api" target="_blank"
+        >LanguageModel</a
+      >,
+      <a
+        href="https://developer.chrome.com/docs/ai/summarizer-api"
+        target="_blank"
+        >Summarizer</a
+      >
+    </p>
+    <div id="main">
+      <button id="update-status-btn">Update Models</button>
+      <!-- <button id="chat-btn">Open Chat</button> -->
+      <div id="instruction">* Please update models first.</div>
+      <div id="translator-status"></div>
+      <div id="language-model-status"></div>
+      <div id="summarizer-status"></div>
+      <div id="overlay" style="display: none">
+        <div id="spinner"></div>
+      </div>
+    </div>
+
+    <script src="dist/popup.js"></script>
+  </body>
+</html>

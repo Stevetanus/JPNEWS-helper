@@ -1,0 +1,15 @@
+{
+  "name": "jpnews",
+  "version": "1.0.0",
+  "description": "NHK News Easy Chrome Extension",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.1.4",
+    "typescript": "^5.9.2"
+  }
+}
