@@ -1,4 +1,3 @@
-console.log('Hello for background!');
 declare const LanguageModel: any;
 declare const Translator: any;
 declare const Summarizer: any;
@@ -11,7 +10,6 @@ let pageId = '';
 chrome.commands.onCommand.addListener((command, tab) => {
   if (command === 'toggle-sidebar') {
     console.log('[JPNEWS] Processing toggle-sidebar command');
-    console.log('[JPNEWS] Sending toggle-sidebar message to tab:', tab!.id);
 
     // Check if tab is ready
     if (tab!.status !== 'complete') {
@@ -26,25 +24,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
       })
       .catch((error) => {
         console.error('[JPNEWS] Error sending message:', error);
-        console.error('[JPNEWS] Error details:', error.message);
       });
-  }
-});
-
-chrome.tabs.onUpdated.addListener((tabId, tab) => {
-  console.log('Tab updated:', { tabId }, { tab });
-  if (tab.status === 'complete') {
-    // chrome.runtime.sendMessage({ action: 'get-url' }, (apiResponse) => {
-    //   const url = apiResponse.data.url;
-    //   if (url && url.includes('https://www3.nhk.or.jp/news/easy/')) {
-    //     const splitList = url.split('/');
-    //     const lastSegment = splitList[splitList.length - 1];
-    //     console.log('Last segment of URL:', lastSegment);
-    //     if (lastSegment.includes('.html')) {
-    //       pageId = lastSegment.replace('.html', '');
-    //     }
-    //   }
-    // });
   }
 });
 
@@ -55,49 +35,44 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['selection'], // 只在選字時出現
   });
   initializeLanguageModel()
-    .then(() => {
-      console.log('LanguageModel initialized successfully');
-    })
+    .then(() => {})
     .catch((error: any) => {
       console.error('Error initializing LanguageModel:', error);
     });
   initializeTranslator()
-    .then(() => {
-      console.log('Translator initialized successfully');
-    })
+    .then(() => {})
     .catch((error: any) => {
       console.error('Error initializing Translator:', error);
     });
   initializeSummarizer()
-    .then(() => {
-      console.log('Summarizer initialized successfully');
-    })
+    .then(() => {})
     .catch((error: any) => {
       console.error('Error initializing Summarizer:', error);
     });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'add-flashcard' && info.selectionText) {
-    const word = info.selectionText.trim();
+// 右鍵選單先不用
+// chrome.contextMenus.onClicked.addListener((info, tab) => {
+//   if (info.menuItemId === 'add-flashcard' && info.selectionText) {
+//     const word = info.selectionText.trim();
 
-    // 存到 chrome.storage
-    chrome.storage.sync.get({ flashcards: [] }, ({ flashcards }) => {
-      flashcards.push({ word, addedAt: Date.now() });
-      chrome.storage.sync.set({ flashcards }, () => {
-        console.log('[Flashcard] Saved word via context menu:', word);
-      });
-    });
+//     // 存到 chrome.storage
+//     chrome.storage.sync.get({ flashcards: [] }, ({ flashcards }) => {
+//       flashcards.push({ word, addedAt: Date.now() });
+//       chrome.storage.sync.set({ flashcards }, () => {
+//         console.log('[Flashcard] Saved word via context menu:', word);
+//       });
+//     });
 
-    // 可選：傳給 content script 做 UI 提示
-    if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, { action: 'flashcard-added', word });
-    }
-  }
-});
+//     // 可選：傳給 content script 做 UI 提示
+//     if (tab?.id) {
+//       chrome.tabs.sendMessage(tab.id, { action: 'flashcard-added', word });
+//     }
+//   }
+// });
 
 chrome.runtime.onConnect.addListener((port) => {
-  console.log('Port connected:', port.name);
+  console.log('[JPNEWS] Port connected:', port.name);
 
   if (port.name === 'popup-channel') {
     port.onMessage.addListener(async (msg) => {
@@ -105,9 +80,7 @@ chrome.runtime.onConnect.addListener((port) => {
       if (action === 'translate-text') {
         (async () => {
           try {
-            console.log('[JPNEWS] Translating text:', text);
             const translation = await translateText(text);
-
             const res = {
               action,
               success: true,
@@ -116,9 +89,7 @@ chrome.runtime.onConnect.addListener((port) => {
                 length: text.length.toString(),
               },
             };
-
-            console.log('[JPNEWS] Translation result:', res);
-            // 如果 port 還在，才送訊息
+            // 如果 popuup 的 port 還在，才送訊息
             try {
               port.postMessage(res);
             } catch (e) {
@@ -175,7 +146,6 @@ chrome.runtime.onConnect.addListener((port) => {
       if (action === 'summarize-text') {
         (async () => {
           try {
-            console.log('[JPNEWS] Summarizing text:', text);
             const sum = await summarizeText(text);
             await setToStorage('sum', { sum, saveAt: Date.now() });
             port.postMessage({
@@ -224,7 +194,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (action === 'translate-text') {
     (async () => {
       try {
-        console.log('[JPNEWS] Translating text:', text);
         const translation = await translateText(text);
 
         const res = {
@@ -249,7 +218,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // chrome.runtime.sendMessage({ action: 'status', status: 'waiting' });
 
       try {
-        console.log('[JPNEWS] Analyzing text:', text);
         const raw = await analyzeText(text);
         await setToStorage('raw', { raw, saveAt: Date.now() });
 
@@ -276,7 +244,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (action === 'summarize-text') {
     (async () => {
       try {
-        console.log('[JPNEWS] Summarizing text:', text);
         const sum = await summarizeText(text);
         await setToStorage('sum', { sum, savedAt: Date.now() });
 
@@ -300,7 +267,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (action === 'nhk-news-page') {
     pageId = message.pageId;
-    console.log({ pageId });
     sendResponse({ success: true });
   }
 
@@ -336,11 +302,9 @@ async function initializeTranslator() {
     sourceLanguage: 'ja',
     targetLanguage: 'en',
   });
-  console.log('Translator availability:', availability);
 
   if (availability !== 'available') {
     notifyPopup('translator', false, 'Translator not ready (downloading...)');
-    console.log('Translator not yet available, waiting for download...');
   }
   try {
     session_t_jp_en = await Translator.create({
@@ -349,15 +313,14 @@ async function initializeTranslator() {
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           const percent = (e.loaded * 100).toFixed(1);
-          console.log(`Downloaded ${percent}%`);
+          console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
 
           if (e.loaded === 1) {
-            console.log('Model fully downloaded. Ready to use!');
           }
         });
       },
     });
-    console.log('Translator model session created:', session_t_jp_en);
+    console.log('[JPNEWs] Translator session created:', session_t_jp_en);
     notifyPopup('translator', true, 'Translator initialized successfully');
   } catch {
     notifyPopup('translator', false, 'Error creating Translator session');
@@ -366,7 +329,6 @@ async function initializeTranslator() {
 
 async function translateText(text: string) {
   const result = await session_t_jp_en.translate(text);
-  console.log('Translation result:', result);
   return result;
 }
 
@@ -376,10 +338,8 @@ async function getFromStorage<T = any>(key: string): Promise<T | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get(ki, (res) => {
       if (res[ki]) {
-        console.log('找到之前的結果:', res[ki]);
         resolve(res[ki]); // 回傳值
       } else {
-        console.log('沒有找到 key:', ki);
         resolve(null); // 沒有的話回 null
       }
     });
@@ -391,7 +351,6 @@ async function setToStorage<T = any>(key: string, value: T): Promise<void> {
   const ki = `${pageId}-${key}`;
   return new Promise((resolve) => {
     chrome.storage.local.set({ [ki]: value }, () => {
-      console.log('已存入:', ki, value);
       resolve();
     });
   });
@@ -400,7 +359,6 @@ async function setToStorage<T = any>(key: string, value: T): Promise<void> {
 async function summarizeText(text: string) {
   let sumStorage = await getFromStorage('sum');
   if (sumStorage) {
-    console.log('Using cached analysis:', sumStorage.sum);
     return sumStorage.sum;
   }
 
@@ -447,7 +405,6 @@ async function analyzeText(text: string) {
       responseConstraint: schema,
     }
   );
-  console.log('Analyzed text response:', response);
   return response;
 }
 
@@ -459,7 +416,6 @@ interface ChatMessage {
 
 // 儲存訊息
 async function saveChatMessage(msg: ChatMessage) {
-  console.log('saving msg: ', { msg });
   const ki = `${pageId}-chat`;
   const chatLog: ChatMessage[] = (await getFromStorage('chat')) || [];
   chatLog.push(msg);
@@ -508,16 +464,6 @@ async function promptLanguageModel(text: string) {
     User: ${text}
     AI:
   `;
-    // if (!sum) {
-    //   summarizeText(text).catch((err) =>
-    //     console.log('no summary before! try running!', { err })
-    //   );
-    // }
-    // if (!words.length) {
-    //   analyzeText(text).catch((err) =>
-    //     console.log('no vocabulary before! try running!', { err })
-    //   );
-    // }
   } else {
     // 2️⃣ 將聊天紀錄轉成文字 prompt
     let context = chatLog
@@ -547,7 +493,7 @@ and make sure the answer is not longer than the user's question. You always answ
     `;
   }
 
-  console.log({ finalPrompt, session_l });
+  // console.log({ finalPrompt, session_l });
 
   // 4️⃣ 呼叫語言模型
   const response = (await session_l.prompt(finalPrompt.trim())).trim();
@@ -573,7 +519,6 @@ async function initializeLanguageModel() {
   }
 
   const availability = await LanguageModel.availability();
-  console.log('LanguageMoodel availability:', availability);
 
   if (availability !== 'available') {
     notifyPopup(
@@ -581,7 +526,6 @@ async function initializeLanguageModel() {
       false,
       'LanguageModel not ready, downlaoding...'
     );
-    console.log('LanguageModel not yet available, waiting for download...');
   }
 
   try {
@@ -596,15 +540,17 @@ async function initializeLanguageModel() {
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           const percent = (e.loaded * 100).toFixed(1);
-          console.log(`Downloaded ${percent}%`);
+          console.log(`[JPNEWS] Language Model Downloaded ${percent}%`);
 
           if (e.loaded === 1) {
-            console.log('Model fully downloaded. Ready to use!');
+            console.log(
+              '[JPNEWs] Language Model fully downloaded. Ready to use!'
+            );
           }
         });
       },
     });
-    console.log('Language model session created:', session_l);
+    console.log('[JPNEWS] Language model session created:', session_l);
     notifyPopup(
       'language-model',
       true,
@@ -627,10 +573,8 @@ async function initializeSummarizer() {
   }
 
   const availability = await Summarizer.availability();
-  console.log('Summarizer availability:', availability);
   if (availability !== 'available') {
     notifyPopup('summarizer', false, 'Summarizer not ready (downloading...)');
-    console.log('Model not yet available, waiting for download...');
   }
   try {
     // Proceed to request batch or streaming summarization
@@ -647,7 +591,7 @@ async function initializeSummarizer() {
       length: 'medium',
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
-          console.log(`Downloaded ${e.loaded * 100}%`);
+          console.log(`[JPNEWS] Summarizer Downloaded ${e.loaded * 100}%`);
         });
       },
     };
@@ -655,7 +599,7 @@ async function initializeSummarizer() {
     session_s = await Summarizer.create(options);
     notifyPopup('summarizer', true, 'Summarizer initialized successfully');
 
-    console.log('Summarizer session created:', session_s);
+    console.log('[JPNEWS] Summarizer session created:', session_s);
   } catch {
     notifyPopup('summarizer', false, 'Error creating summarizer session');
   }
@@ -694,19 +638,6 @@ type Word = {
   japanese: string;
   description: string;
 };
-/**
- * 將 JSON 陣列轉成 TSV 字串
- */
-// function jsonToTSV(words: Word[]): string {
-//   // 先加入表頭
-//   const header = ['English', 'Chinese', 'Japanese'].join('\t');
-
-//   // 每個物件的欄位用 tab 連接
-//   const rows = words.map((w) => [w.english, w.chinese, w.japanese].join('\t'));
-
-//   // header + rows，用換行連接
-//   return [header, ...rows].join('\n');
-// }
 
 // Check commands on startup
 chrome.commands.getAll((commands) => {
