@@ -12,16 +12,13 @@ if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
     ? lastSegment.replace('.html', '')
     : lastSegment;
 
-  console.log('[Content] NHK Easy News detected, pageId:', pageId);
-
-  // 主動通知 background 或 popup
+  // 主動通知 background
   chrome.runtime.sendMessage({
     action: 'nhk-news-page',
     pageId,
     url: window.location.href,
   });
 
-  console.log('send by itself...');
   let result = '';
   document
     .querySelectorAll('#js-article-body p')
@@ -244,7 +241,6 @@ function createSidebar() {
     e.preventDefault();
     const value = chatInput!.value.trim();
     if (value) {
-      console.log('送出的訊息:', value);
       showOverlay();
       closeSummarizeAnalyzeBtns();
       disableElements();
@@ -263,7 +259,6 @@ function createSidebar() {
           hideOverlay();
           enableElements();
           mainStatus = 'chat';
-          console.log('API 回應:', { apiResponse });
         }
       );
     }
@@ -468,7 +463,6 @@ function createSidebar() {
   window.addEventListener('keydown', closeSidebar);
 
   function closeSidebar(e: KeyboardEvent) {
-    console.log('remove');
     if (e.key === 'Escape') {
       sidebar!.remove();
       window.removeEventListener('keydown', closeSidebar);
@@ -496,7 +490,6 @@ function createMutuallyExclusiveToggles(
       chrome.runtime.sendMessage(
         { action: 'get-feature-status' },
         (response) => {
-          console.log(response);
           // 初始 hide
           hideOverlay();
           const featureStatus = response.data.featureStatus;
@@ -519,7 +512,6 @@ function createMutuallyExclusiveToggles(
             b.style.backgroundColor = '';
             b.style.color = '';
             if (event.isTrusted) {
-              console.log('trusted');
               callbacks[i](false)(); // 停止其他功能
             }
           }
@@ -602,42 +594,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'flashcard-added') {
     alert(`已加入單字: ${msg.word}`);
   } else if (msg.action === 'get-text') {
+    // 是為了在 popup 更新裡面的 rawNews 取得新聞文字
     let result = '';
     document
       .querySelectorAll('#js-article-body p')
       .forEach((p) => (result += (p as HTMLParagraphElement).innerText + '\n'));
     sendResponse({ text: result });
-    console.log('[JPNEWS] Content script sent text:', result);
     rawNews = result; // 儲存原始新聞內容
 
-    // 再傳給 background.js 去呼叫 API
-    // document.querySelectorAll('#js-article-body p').forEach((p, i) =>
-    //   chrome.runtime.sendMessage(
-    //     {
-    //       action: 'translate-text',
-    //       text: (p as HTMLParagraphElement).innerText,
-    //     },
-    //     (apiResponse: {
-    //       success: boolean;
-    //       data: { length: string; translation: string };
-    //     }) => {
-    //       console.log('API 回應:', { apiResponse });
-    //       // 在每個 <p> 後面插入翻譯
-    //       p.insertAdjacentHTML(
-    //         'afterend',
-    //         `<div id=jp_news-${i}>${apiResponse.data.translation}</div>`
-    //       );
-    //     }
-    //   )
-    // );
-
     return true; // 表示會異步回應
-  } else if (msg.action === 'get-url') {
-    sendResponse({ success: true, data: { url: window.location.href } });
-    console.log('[JPNEWS] Content script sent url to backend:');
-    return true;
   } else if (msg.action === 'toggle-sidebar') {
-    console.log('[JKNEWS] toggling sidebar!');
     toggleSidebar();
     sendResponse({
       success: true,
@@ -646,7 +612,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       },
     });
   } else if (msg.action === 'check-chat') {
-    console.log('check-chat', { isChatOpen });
     sendResponse({
       success: true,
       data: {
@@ -701,7 +666,6 @@ async function analyzeNews() {
         tsv: string;
       };
     }) => {
-      console.log('API 回應:', { apiResponse });
       if (typeof apiResponse.data.analyzation === 'string') {
         const div = document.createElement('div');
         div.innerText = apiResponse.data.analyzation;
@@ -809,7 +773,6 @@ async function summarizeNews() {
         count: number;
       };
     }) => {
-      console.log('summarize text: ', apiResponse);
       // 先清空舊內容
       cleanMain();
       if (!apiResponse.data.sum) {
@@ -848,7 +811,6 @@ async function translateNews(close = false) {
         success: boolean;
         data: { length: string; translation: string };
       }) => {
-        console.log('文字翻譯:', { apiResponse });
         if (isChatOpen) {
           h1.insertAdjacentHTML(
             'afterend',
@@ -868,7 +830,6 @@ async function translateNews(close = false) {
           success: boolean;
           data: { length: string; translation: string };
         }) => {
-          console.log('文字翻譯:', { apiResponse });
           if (isChatOpen) {
             // 在每個 <p> 後面插入翻譯
             p.insertAdjacentHTML(
@@ -885,17 +846,12 @@ async function translateNews(close = false) {
 
 const cleanMain = () => {
   Array.from(main!.children).forEach((child) => {
-    // console.log({ child });
-    // if (child.id !== 'jpnews-overlay') {
-    //   main!.removeChild(child);
-    // }
     main!.removeChild(child);
   });
   mainStatus = 'empty';
   if (controlsDiv) {
     controlsDiv.style.display = 'none';
   }
-  console.log({ overlay });
 };
 
 function disableElements() {
@@ -925,14 +881,11 @@ function enableElements() {
 }
 
 function hideOverlay() {
-  console.log('hide', { overlay });
-
   if (overlay) {
     overlay.style.display = 'none';
   }
 }
 function showOverlay() {
-  console.log('show', { overlay });
   if (overlay) {
     overlay.style.display = 'flex';
   }
