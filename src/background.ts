@@ -1,10 +1,27 @@
 declare const LanguageModel: any;
 declare const Translator: any;
 declare const Summarizer: any;
-const featureStatus: Record<string, { success: boolean; message: string }> = {};
+const featureStatus: Record<Feature, { success: boolean; message: string }> = {
+  summarizer: {
+    success: false,
+    message: 'Summarizer not initialized',
+  },
+  translator: {
+    success: false,
+    message: 'Translator not initialized',
+  },
+  'language-model': {
+    success: false,
+    message: 'LanguageModel not initialized',
+  },
+};
+/** Language Model session */
 let session_l: any;
+/** Translator session for Japnanese to English */
 let session_t_jp_en: any;
+/** Summarizer session  */
 let session_s: any;
+/** Page Id get from NHK News Easy url */
 let pageId = '';
 
 chrome.commands.onCommand.addListener((command, tab) => {
@@ -228,6 +245,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Failed to parse JSON:', err);
         }
 
+        console.log('[JPNEWS] Vocabulary result:', { words });
+
         sendResponse({
           success: true,
           data: { analyzation: words, count: words.length },
@@ -246,6 +265,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const sum = await summarizeText(text);
         await setToStorage('sum', { sum, savedAt: Date.now() });
+
+        console.log('[JPNEWS] Summarizer result:', { sum });
 
         sendResponse({
           success: true,
@@ -286,53 +307,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Log when service worker starts
-console.log('[JPNEWS] ===== BACKGROUND SCRIPT LOADED =====');
-console.log('[JPNEWS] Background script loaded at:', new Date().toISOString());
-console.log('[JPNEWS] Chrome version:', navigator.userAgent);
-
-async function initializeTranslator() {
-  if (typeof Translator === 'undefined') {
-    notifyPopup('translator', false, 'Translator not available');
-    console.warn('Translator API not available in this context.');
-    return;
-  }
-
-  const availability = await Translator.availability({
-    sourceLanguage: 'ja',
-    targetLanguage: 'en',
-  });
-
-  if (availability !== 'available') {
-    notifyPopup('translator', false, 'Translator not ready (downloading...)');
-  }
-  try {
-    session_t_jp_en = await Translator.create({
-      sourceLanguage: 'ja',
-      targetLanguage: 'en',
-      monitor(m: any) {
-        m.addEventListener('downloadprogress', (e: any) => {
-          const percent = (e.loaded * 100).toFixed(1);
-          console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
-
-          if (e.loaded === 1) {
-          }
-        });
-      },
-    });
-    console.log('[JPNEWs] Translator session created:', session_t_jp_en);
-    notifyPopup('translator', true, 'Translator initialized successfully');
-  } catch {
-    notifyPopup('translator', false, 'Error creating Translator session');
-  }
-}
-
-async function translateText(text: string) {
-  const result = await session_t_jp_en.translate(text);
-  return result;
-}
-
-// 共用函式
+/** get value from extension storage local */
 async function getFromStorage<T = any>(key: string): Promise<T | null> {
   const ki = `${pageId}-${key}`;
   return new Promise((resolve) => {
@@ -346,7 +321,7 @@ async function getFromStorage<T = any>(key: string): Promise<T | null> {
   });
 }
 
-// 存入共用函式
+/** set value to extension storage local */
 async function setToStorage<T = any>(key: string, value: T): Promise<void> {
   const ki = `${pageId}-${key}`;
   return new Promise((resolve) => {
@@ -367,6 +342,11 @@ async function summarizeText(text: string) {
   // 未來再處理看看 stream
   // const stream = await session_s.summarizeStreaming(text);
   // return stream;
+}
+
+async function translateText(text: string) {
+  const result = await session_t_jp_en.translate(text);
+  return result;
 }
 
 async function analyzeText(text: string) {
@@ -406,12 +386,6 @@ async function analyzeText(text: string) {
     }
   );
   return response;
-}
-
-interface ChatMessage {
-  user: 'me' | 'ai';
-  text: string;
-  timestamp: number;
 }
 
 // 儲存訊息
@@ -493,8 +467,6 @@ and make sure the answer is not longer than the user's question. You always answ
     `;
   }
 
-  // console.log({ finalPrompt, session_l });
-
   // 4️⃣ 呼叫語言模型
   const response = (await session_l.prompt(finalPrompt.trim())).trim();
 
@@ -509,6 +481,82 @@ and make sure the answer is not longer than the user's question. You always answ
   await saveChatMessage(aiMsg);
 
   return response;
+}
+// Summarizer API
+async function initializeSummarizer() {
+  if (typeof Summarizer === 'undefined') {
+    notifyPopup('summarizer', false, 'Summarizer not available');
+    console.warn('LanguageModel API not available in this context.');
+    return;
+  }
+
+  const availability = await Summarizer.availability();
+  if (availability !== 'available') {
+    notifyPopup('summarizer', false, 'Summarizer not ready (downloading...)');
+  }
+  try {
+    // Proceed to request batch or streaming summarization
+    const options: {
+      sharedContext: string;
+      type: 'tldr' | 'teaser' | 'key-points' | 'headline'; // keypoint(default)
+      format: 'markdown' | 'plain-text'; // markdown(default)
+      length: 'short' | 'medium' | 'long'; // medium(default)
+      monitor: (m: any) => void;
+    } = {
+      sharedContext: 'This is a news from NHK News',
+      type: 'teaser',
+      format: 'plain-text',
+      length: 'medium',
+      monitor(m: any) {
+        m.addEventListener('downloadprogress', (e: any) => {
+          console.log(`[JPNEWS] Summarizer Downloaded ${e.loaded * 100}%`);
+        });
+      },
+    };
+
+    session_s = await Summarizer.create(options);
+    notifyPopup('summarizer', true, 'Summarizer initialized successfully');
+
+    console.log('[JPNEWS] Summarizer session created:', session_s);
+  } catch {
+    notifyPopup('summarizer', false, 'Error creating summarizer session');
+  }
+}
+
+async function initializeTranslator() {
+  if (typeof Translator === 'undefined') {
+    notifyPopup('translator', false, 'Translator not available');
+    console.warn('Translator API not available in this context.');
+    return;
+  }
+
+  const availability = await Translator.availability({
+    sourceLanguage: 'ja',
+    targetLanguage: 'en',
+  });
+
+  if (availability !== 'available') {
+    notifyPopup('translator', false, 'Translator not ready (downloading...)');
+  }
+  try {
+    session_t_jp_en = await Translator.create({
+      sourceLanguage: 'ja',
+      targetLanguage: 'en',
+      monitor(m: any) {
+        m.addEventListener('downloadprogress', (e: any) => {
+          const percent = (e.loaded * 100).toFixed(1);
+          console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
+
+          if (e.loaded === 1) {
+          }
+        });
+      },
+    });
+    console.log('[JPNEWs] Translator session created:', session_t_jp_en);
+    notifyPopup('translator', true, 'Translator initialized successfully');
+  } catch {
+    notifyPopup('translator', false, 'Error creating Translator session');
+  }
 }
 
 async function initializeLanguageModel() {
@@ -564,63 +612,19 @@ async function initializeLanguageModel() {
     );
   }
 }
-// Summarizer API
-async function initializeSummarizer() {
-  if (typeof Summarizer === 'undefined') {
-    notifyPopup('summarizer', false, 'Summarizer not available');
-    console.warn('LanguageModel API not available in this context.');
-    return;
-  }
 
-  const availability = await Summarizer.availability();
-  if (availability !== 'available') {
-    notifyPopup('summarizer', false, 'Summarizer not ready (downloading...)');
-  }
-  try {
-    // Proceed to request batch or streaming summarization
-    const options: {
-      sharedContext: string;
-      type: 'tldr' | 'teaser' | 'key-points' | 'headline'; // keypoint(default)
-      format: 'markdown' | 'plain-text'; // markdown(default)
-      length: 'short' | 'medium' | 'long'; // medium(default)
-      monitor: (m: any) => void;
-    } = {
-      sharedContext: 'This is a news from NHK News',
-      type: 'teaser',
-      format: 'plain-text',
-      length: 'medium',
-      monitor(m: any) {
-        m.addEventListener('downloadprogress', (e: any) => {
-          console.log(`[JPNEWS] Summarizer Downloaded ${e.loaded * 100}%`);
-        });
-      },
-    };
-
-    session_s = await Summarizer.create(options);
-    notifyPopup('summarizer', true, 'Summarizer initialized successfully');
-
-    console.log('[JPNEWS] Summarizer session created:', session_s);
-  } catch {
-    notifyPopup('summarizer', false, 'Error creating summarizer session');
-  }
-}
-
-function notifyPopup(
-  feature: 'summarizer' | 'translator' | 'language-model',
-  success: boolean,
-  message: string
-) {
+/**
+ * Notify the popup about the status of a feature.
+ * @param feature The feature to notify about (summarizer, translator, language-model).
+ * @param success Whether the feature is successfully initialized.
+ * @param message A message to display in the popup.
+ */
+function notifyPopup(feature: Feature, success: boolean, message: string) {
   featureStatus[feature] = {
     success,
     message,
   };
-  // chrome.runtime.sendMessage({
-  //   type: `${feature}-status`,
-  //   success,
-  //   message,
-  // });
 }
-
 function safeParseModelJson(raw: string) {
   try {
     // 去掉 ```json``` 或其他多餘字符
@@ -631,14 +635,22 @@ function safeParseModelJson(raw: string) {
     return [];
   }
 }
-
+type Feature = 'summarizer' | 'translator' | 'language-model';
+interface ChatMessage {
+  user: 'me' | 'ai';
+  text: string;
+  timestamp: number;
+}
 type Word = {
   english: string;
   chinese?: string;
   japanese: string;
   description: string;
 };
-
+// Log when service worker starts
+console.log('[JPNEWS] ===== BACKGROUND SCRIPT LOADED =====');
+console.log('[JPNEWS] Background script loaded at:', new Date().toISOString());
+console.log('[JPNEWS] Chrome version:', navigator.userAgent);
 // Check commands on startup
 chrome.commands.getAll((commands) => {
   console.log('[JPNEWS] Commands available on startup:', commands);
