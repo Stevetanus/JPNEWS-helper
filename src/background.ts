@@ -181,6 +181,38 @@ chrome.runtime.onConnect.addListener((port) => {
         return true;
       }
       if (action === 'get-feature-status') {
+        Object.keys(featureStatus).forEach((key) => {
+          if (key === 'language-model' && !featureStatus[key].success) {
+            // 如果 language-model 還沒初始化，先初始化
+            initializeLanguageModel()
+              .then(() => {
+                console.log('[JPNEWS] LanguageModel initialized');
+              })
+              .catch((error: any) => {
+                console.error('Error initializing LanguageModel:', error);
+              });
+          }
+          if (key === 'translator' && !featureStatus[key].success) {
+            // 如果 translator 還沒初始化，先初始化
+            initializeTranslator()
+              .then(() => {
+                console.log('[JPNEWS] Translator initialized');
+              })
+              .catch((error: any) => {
+                console.error('Error initializing Translator:', error);
+              });
+          }
+          if (key === 'summarizer' && !featureStatus[key].success) {
+            // 如果 summarizer 還沒初始化，先初始化
+            initializeSummarizer()
+              .then(() => {
+                console.log('[JPNEWS] Summarizer initialized');
+              })
+              .catch((error: any) => {
+                console.error('Error initializing Summarizer:', error);
+              });
+          }
+        });
         port.postMessage({
           action,
           success: true,
@@ -266,7 +298,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const sum = await summarizeText(text);
         await setToStorage('sum', { sum, savedAt: Date.now() });
 
-        console.log('[JPNEWS] Summarizer result:', { sum });
+        console.log('[JPNEWS] Summarizer result:', { sum }, { session_s });
 
         sendResponse({
           success: true,
@@ -429,7 +461,7 @@ async function promptLanguageModel(text: string) {
 
   let finalPrompt = '';
   if (!sum && !words.length) {
-    // 沒有背景或單字，先給簡單提示
+    // 沒有背景與單字，先給簡單提示
     finalPrompt = `
     You are a Japanese learning assistant. Currently, you don't have the news summary or vocabulary.
     Please reply briefly: tell the user to press the **Summarize** button or **Vocabulary** button first.
@@ -466,6 +498,7 @@ and make sure the answer is not longer than the user's question. You always answ
     AI:
     `;
   }
+  console.log('[JPNEWS] Final prompt:', finalPrompt);
 
   // 4️⃣ 呼叫語言模型
   const response = (await session_l.prompt(finalPrompt.trim())).trim();

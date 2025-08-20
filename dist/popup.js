@@ -8,8 +8,18 @@ closeDiv.addEventListener('click', () => {
 const updateStatusBtn = (document.getElementById('update-status-btn'));
 updateStatusBtn.addEventListener('click', async () => {
     try {
+        const overlay = document.getElementById('overlay');
+        overlay.style.display = 'flex';
         // const status = await fetchFeatureStatus();
         const status = await fetchFeatureStatusViaPort(port);
+        const isAllSuccess = Object.values(status).every((feature) => {
+            return feature.success;
+        });
+        console.log({ status, isAllSuccess });
+        if (isAllSuccess) {
+            overlay.style.display = 'none';
+            instruction.innerHTML = '* Use ctrl + j to open chat';
+        }
         console.log('[JPNEWS] Model status:', status);
         // 之後試看看透過其他按鈕去預先取資料
         return;

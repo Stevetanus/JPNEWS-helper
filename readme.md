@@ -2,6 +2,8 @@
 ---
 JP News Helper is an extension to help users learn Japanese through [NHK News Easy](https://www3.nhk.or.jp/news/easy/).
 
+## [Intro Video](https://youtu.be/fV98dxeJ_vU)
+
 ## Example: 
 Use extension on [news](https://www3.nhk.or.jp/news/easy/ne2025073112098/ne2025073112098.html)
 
