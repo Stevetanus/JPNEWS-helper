@@ -33,7 +33,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
       console.warn('[JPNEWS] Tab is not ready, status:', tab!.status);
     }
 
-    // Send a message to the content script in the active tab
+    // open current tab's sidebar
     chrome.tabs
       .sendMessage(tab!.id!, { action: 'toggle-sidebar' })
       .then((response) => {
@@ -295,10 +295,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (action === 'summarize-text') {
     (async () => {
       try {
+        console.log('[JPNEWS] Summarizer request:', { text });
         const sum = await summarizeText(text);
         await setToStorage('sum', { sum, savedAt: Date.now() });
-
-        console.log('[JPNEWS] Summarizer result:', { sum }, { session_s });
+        console.log('[JPNEWS] Summarizer result:', { sum });
 
         sendResponse({
           success: true,
@@ -404,19 +404,20 @@ async function analyzeText(text: string) {
     },
   };
 
-  const response = await session_l.prompt(
-    `Analyze the following text and return exactly 10 important words in different language and also the description of the words in English.
+  const finalPrompt = `Analyze the following text and return exactly 10 important words in different language and also the description of the words in English.
     - English: The word in English
     - Japanese: The word in Japanese with hiragana
     - Description: The description of the word in English
   Example: [{ "english": "Japan", "japanese": "日本 (にほん)", "description": "A country in East Asia" }, ...]
 
   Text:
-  ${text}`,
-    {
-      responseConstraint: schema,
-    }
-  );
+  ${text}`;
+
+  console.log('[JPNEWS] Vocabulary is in process:', { finalPrompt });
+  const response = await session_l.prompt(finalPrompt, {
+    responseConstraint: schema,
+  });
+
   return response;
 }
 
@@ -498,7 +499,7 @@ and make sure the answer is not longer than the user's question. You always answ
     AI:
     `;
   }
-  console.log('[JPNEWS] Final prompt:', finalPrompt);
+  console.log('[JPNEWS] Chat is in process:', finalPrompt);
 
   // 4️⃣ 呼叫語言模型
   const response = (await session_l.prompt(finalPrompt.trim())).trim();

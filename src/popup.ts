@@ -93,11 +93,11 @@ async function fetchFeatureStatusViaPort(
 }
 
 async function featchBackGroundInfo() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   const getTextFromContent = () =>
     new Promise<string>((resolve, reject) => {
-      chrome.tabs.sendMessage(tab.id!, { action: 'get-text' }, (response) => {
+      chrome.runtime.sendMessage({ action: 'get-text' }, (response) => {
         if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
         resolve(response.text);
       });

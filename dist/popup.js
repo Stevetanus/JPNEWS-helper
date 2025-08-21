@@ -15,7 +15,6 @@ updateStatusBtn.addEventListener('click', async () => {
         const isAllSuccess = Object.values(status).every((feature) => {
             return feature.success;
         });
-        console.log({ status, isAllSuccess });
         if (isAllSuccess) {
             overlay.style.display = 'none';
             instruction.innerHTML = '* Use ctrl + j to open chat';
@@ -75,9 +74,9 @@ async function fetchFeatureStatusViaPort(port) {
     });
 }
 async function featchBackGroundInfo() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const getTextFromContent = () => new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tab.id, { action: 'get-text' }, (response) => {
+        chrome.runtime.sendMessage({ action: 'get-text' }, (response) => {
             if (chrome.runtime.lastError)
                 return reject(chrome.runtime.lastError);
             resolve(response.text);
