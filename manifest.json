@@ -1,6 +1,6 @@
 {
     "name": "JP News Helper",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "A Chrome extension to help you learn Japanese by NHK News Easy.",
     "permissions": ["storage", "activeTab"],
     "host_permissions": ["https://www3.nhk.or.jp/news/easy/*"],
