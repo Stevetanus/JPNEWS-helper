@@ -371,16 +371,6 @@ function createMutuallyExclusiveToggles(labels, callbacks) {
         btn.style.fontSize = '12px';
         btn.style.cursor = 'pointer';
         btn.dataset.active = 'false';
-        if (label === 'Vocabulary') {
-            chrome.runtime.sendMessage({ action: 'get-feature-status' }, (response) => {
-                // 初始 hide
-                hideOverlay();
-                const featureStatus = response.data.featureStatus;
-                if (!featureStatus['language-model'].success) {
-                    btn.disabled = true;
-                }
-            });
-        }
         btn.addEventListener('click', (event) => {
             const isActive = btn.dataset.active === 'true';
             // Translate 獨立控制
@@ -406,6 +396,21 @@ function createMutuallyExclusiveToggles(labels, callbacks) {
             callbacks[idx](!isActive)();
         });
         buttons.push(btn);
+    });
+    chrome.runtime.sendMessage({ action: 'get-feature-status' }, (response) => {
+        // 初始 hide
+        hideOverlay();
+        const featureStatus = response.data.featureStatus;
+        // Todo: disable chatInput
+        if (!featureStatus['summarizer'].success) {
+            buttons[0].disabled = true;
+        }
+        if (!featureStatus['translator'].success) {
+            buttons[1].disabled = true;
+        }
+        if (!featureStatus['language-model'].success) {
+            buttons[2].disabled = true;
+        }
     });
     return buttons;
 }
@@ -488,14 +493,16 @@ async function analyzeNews() {
     disableElements();
     // 再傳給 background.js 去呼叫 API
     chrome.runtime.sendMessage({ action: 'analyze-text', text: rawNews }, (apiResponse) => {
+        // 先清空舊內容
+        cleanMain();
         if (typeof apiResponse.data.analyzation === 'string') {
             const div = document.createElement('div');
             div.innerText = apiResponse.data.analyzation;
             main?.appendChild(div);
+            hideOverlay();
+            enableElements();
             return;
         }
-        // 先清空舊內容
-        cleanMain();
         // 建立 table
         const table = document.createElement('table');
         table.style.borderCollapse = 'collapse';

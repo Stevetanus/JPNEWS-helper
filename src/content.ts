@@ -433,19 +433,6 @@ function createMutuallyExclusiveToggles(
 
     btn.dataset.active = 'false';
 
-    if (label === 'Vocabulary') {
-      chrome.runtime.sendMessage(
-        { action: 'get-feature-status' },
-        (response) => {
-          // 初始 hide
-          hideOverlay();
-          const featureStatus = response.data.featureStatus;
-          if (!featureStatus['language-model'].success) {
-            btn.disabled = true;
-          }
-        }
-      );
-    }
     btn.addEventListener('click', (event) => {
       const isActive = btn.dataset.active === 'true';
 
@@ -471,8 +458,27 @@ function createMutuallyExclusiveToggles(
       btn.style.color = !isActive ? 'white' : '';
       callbacks[idx](!isActive)();
     });
-
     buttons.push(btn);
+  });
+
+  chrome.runtime.sendMessage({ action: 'get-feature-status' }, (response) => {
+    // 初始 hide
+    hideOverlay();
+    const featureStatus: Record<
+      'summarizer' | 'translator' | 'language-model',
+      { success: boolean; message: string }
+    > = response.data.featureStatus;
+
+    // Todo: disable chatInput
+    if (!featureStatus['summarizer'].success) {
+      buttons[0].disabled = true;
+    }
+    if (!featureStatus['translator'].success) {
+      buttons[1].disabled = true;
+    }
+    if (!featureStatus['language-model'].success) {
+      buttons[2].disabled = true;
+    }
   });
 
   return buttons;
@@ -578,15 +584,17 @@ async function analyzeNews() {
         tsv: string;
       };
     }) => {
+      // 先清空舊內容
+      cleanMain();
+
       if (typeof apiResponse.data.analyzation === 'string') {
         const div = document.createElement('div');
         div.innerText = apiResponse.data.analyzation;
         main?.appendChild(div);
+        hideOverlay();
+        enableElements();
         return;
       }
-
-      // 先清空舊內容
-      cleanMain();
 
       // 建立 table
       const table = document.createElement('table');

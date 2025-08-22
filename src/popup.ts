@@ -17,10 +17,8 @@ updateStatusBtn.addEventListener('click', async () => {
     const isAllSuccess = Object.values(status).every((feature) => {
       return feature.success;
     });
-    if (isAllSuccess) {
-      overlay.style.display = 'none';
-      instruction.innerHTML = '* Use ctrl + j to open chat';
-    }
+    overlay.style.display = 'none';
+    instruction.innerHTML = '* Use ctrl + j to open chat';
     console.log('[JPNEWS] Model status:', status);
 
     // 之後試看看透過其他按鈕去預先取資料
@@ -93,8 +91,6 @@ async function fetchFeatureStatusViaPort(
 }
 
 async function featchBackGroundInfo() {
-  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
   const getTextFromContent = () =>
     new Promise<string>((resolve, reject) => {
       chrome.runtime.sendMessage({ action: 'get-text' }, (response) => {
@@ -105,7 +101,6 @@ async function featchBackGroundInfo() {
 
   try {
     const rawNews = await getTextFromContent();
-    // await analyzeAll(rawNews); // 等待全部 API 都完成
     await analyzeAllViaPort(port, rawNews); // 等待全部 API 都完成
   } catch (err) {
     console.error('Error fetching background info:', err);

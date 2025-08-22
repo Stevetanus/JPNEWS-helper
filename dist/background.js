@@ -22,29 +22,38 @@ let session_s;
 /** Page Id get from NHK News Easy url */
 let pageId = '';
 chrome.commands.onCommand.addListener((command, tab) => {
+    // Check if tab is ready
+    if (tab.status !== 'complete') {
+        console.warn('[JPNEWS] Tab is not ready, status:', tab.status);
+    }
     if (command === 'toggle-sidebar') {
-        console.log('[JPNEWS] Processing toggle-sidebar command');
-        // Check if tab is ready
-        if (tab.status !== 'complete') {
-            console.warn('[JPNEWS] Tab is not ready, status:', tab.status);
-        }
-        // open current tab's sidebar
+        // 查詢目前 active tab
         chrome.tabs
-            .sendMessage(tab.id, { action: 'toggle-sidebar' })
-            .then((response) => {
-            console.log('[JPNEWS] Message sent successfully, response:', response);
+            .query({ active: true, currentWindow: true })
+            .then((tabs) => {
+            const tab = tabs[0];
+            if (!tab?.id) {
+                console.warn('[JPNEWS] No active tab found');
+                return;
+            }
+            chrome.tabs
+                .sendMessage(tab.id, { action: 'toggle-sidebar' })
+                .then((response) => {
+                console.log('[JPNEWS] Sidebar toggled successfully:', response);
+            })
+                .catch((err) => {
+                console.error('[JPNEWS] Error toggling sidebar:', err);
+            });
         })
-            .catch((error) => {
-            console.error('[JPNEWS] Error sending message:', error);
-        });
+            .catch((err) => console.error('[JPNEWS] Failed to query tab:', err));
     }
 });
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: 'add-flashcard',
-        title: '加入 Flashcard',
-        contexts: ['selection'], // 只在選字時出現
-    });
+    // chrome.contextMenus.create({
+    //   id: 'add-flashcard',
+    //   title: '加入 Flashcard',
+    //   contexts: ['selection'], // 只在選字時出現
+    // });
     initializeLanguageModel()
         .then(() => { })
         .catch((error) => {
@@ -72,10 +81,6 @@ chrome.runtime.onInstalled.addListener(() => {
 //         console.log('[Flashcard] Saved word via context menu:', word);
 //       });
 //     });
-//     // 可選：傳給 content script 做 UI 提示
-//     if (tab?.id) {
-//       chrome.tabs.sendMessage(tab.id, { action: 'flashcard-added', word });
-//     }
 //   }
 // });
 chrome.runtime.onConnect.addListener((port) => {
