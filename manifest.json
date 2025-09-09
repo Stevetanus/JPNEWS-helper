@@ -1,39 +1,40 @@
 {
-    "name": "JP News Helper",
-    "version": "0.1.3",
-    "description": "A Chrome extension to help you learn Japanese by NHK News Easy.",
-    "permissions": ["storage", "activeTab"],
-    "host_permissions": ["https://www3.nhk.or.jp/news/easy/*"],
-    "background": {
-      "service_worker": "dist/background.js"
-    },
-    "commands": {
-      "toggle-sidebar": {
-        "suggested_key": {
-          "default": "Ctrl+J",
-          "mac": "MacCtrl+J"
-          },
-        "description": "Toggle the sidebar"
-        }
-    },
-    "content_scripts": [
-      {
-        "matches": ["https://www3.nhk.or.jp/news/easy/*"],
-        "js": ["dist/content.js"]
-      }
-    ],
-    "action": {
-      "default_icon": {
+  "name": "JP News Helper TEST",
+  "version": "0.1.4",
+  "description": "A Chrome extension to help you learn Japanese by NHK News Easy.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://www3.nhk.or.jp/news/easy/*"],
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+J",
+        "mac": "MacCtrl+J"
       },
-      "default_title": "JP News Helper",
-      "default_popup": "popup.html"
-    },
-    "icons": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    },
-    "trial_tokens": ["AnlT7gRo/750gGKtoI/A3D2rL5yAQA9wISlLqHGE6vJQinPfk0HiIij5LhWs+iuB7mTeotXmEXkvdpOAC1YjAgAAAG97Im9yaWdpbiI6ImNocm9tZS1leHRlbnNpb246Ly9sampoamFha21uY2lib25uanBhb2dsYmhjamVvbGhrayIsImZlYXR1cmUiOiJJQ2Fubm90QmVsaWV2ZVlvdVdhc3RlZFlvdXJUaW1lRGVjb2RpbmdUaGlzIiwiZXhwaXJ5Ijo1NzI1NDA3OTk5fQ=="],
-    "manifest_version": 3
+      "description": "Toggle the sidebar"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www3.nhk.or.jp/news/easy/*"],
+      "js": ["dist/content.js"]
+    }
+  ],
+  "action": {
+    "default_icon": {},
+    "default_title": "JP News Helper",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "trial_tokens": [
+    "AnlT7gRo/750gGKtoI/A3D2rL5yAQA9wISlLqHGE6vJQinPfk0HiIij5LhWs+iuB7mTeotXmEXkvdpOAC1YjAgAAAG97Im9yaWdpbiI6ImNocm9tZS1leHRlbnNpb246Ly9sampoamFha21uY2lib25uanBhb2dsYmhjamVvbGhrayIsImZlYXR1cmUiOiJJQ2Fubm90QmVsaWV2ZVlvdVdhc3RlZFlvdXJUaW1lRGVjb2RpbmdUaGlzIiwiZXhwaXJ5Ijo1NzI1NDA3OTk5fQ=="
+  ],
+  "manifest_version": 3
 }

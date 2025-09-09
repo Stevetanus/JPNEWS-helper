@@ -24,33 +24,55 @@ let session_s: any;
 /** Page Id get from NHK News Easy url */
 let pageId = '';
 
-chrome.commands.onCommand.addListener((command, tab) => {
+chrome.commands.onCommand.addListener(async (command, tab) => {
   // Check if tab is ready
   if (tab!.status !== 'complete') {
     console.warn('[JPNEWS] Tab is not ready, status:', tab!.status);
   }
+  // if (command === 'toggle-sidebar') {
+  //   // 查詢目前 active tab
+  //   chrome.tabs
+  //     .query({ active: true, currentWindow: true })
+  //     .then((tabs) => {
+  //       const tab = tabs[0];
+
+  //       if (!tab?.id) {
+  //         console.warn('[JPNEWS] No active tab found');
+  //         return;
+  //       }
+
+  //       chrome.tabs
+  //         .sendMessage(tab.id, { action: 'toggle-sidebar' })
+  //         .then((response) => {
+  //           console.log('[JPNEWS] Sidebar toggled successfully:', response);
+  //         })
+  //         .catch((err) => {
+  //           console.error('[JPNEWS] Error toggling sidebar:', err);
+  //         });
+  //     })
+  //     .catch((err) => console.error('[JPNEWS] Failed to query tab:', err));
+  // }
+
   if (command === 'toggle-sidebar') {
-    // 查詢目前 active tab
-    chrome.tabs
-      .query({ active: true, currentWindow: true })
-      .then((tabs) => {
-        const tab = tabs[0];
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const activeTab = tabs[0];
 
-        if (!tab?.id) {
-          console.warn('[JPNEWS] No active tab found');
-          return;
-        }
+      if (!activeTab?.id) {
+        console.warn('[JPNEWS] No active tab found');
+        return;
+      }
 
-        chrome.tabs
-          .sendMessage(tab.id, { action: 'toggle-sidebar' })
-          .then((response) => {
-            console.log('[JPNEWS] Sidebar toggled successfully:', response);
-          })
-          .catch((err) => {
-            console.error('[JPNEWS] Error toggling sidebar:', err);
-          });
-      })
-      .catch((err) => console.error('[JPNEWS] Failed to query tab:', err));
+      const response = await chrome.tabs.sendMessage(activeTab.id, {
+        action: 'toggle-sidebar',
+      });
+      console.log('[JPNEWS] Sidebar toggled successfully:', response);
+    } catch (err) {
+      console.error('[JPNEWS] Error toggling sidebar:', err);
+    }
   }
 });
 
@@ -185,38 +207,32 @@ chrome.runtime.onConnect.addListener((port) => {
         return true;
       }
       if (action === 'get-feature-status') {
-        Object.keys(featureStatus).forEach((key) => {
-          if (key === 'language-model' && !featureStatus[key].success) {
-            // 如果 language-model 還沒初始化，先初始化
-            initializeLanguageModel()
-              .then(() => {
-                console.log('[JPNEWS] LanguageModel initialized');
-              })
-              .catch((error: any) => {
-                console.error('Error initializing LanguageModel:', error);
-              });
+        console.log('[JPNEWS] Feature status requested:', featureStatus);
+
+        const initPromises = Object.keys(featureStatus).map((key) => {
+          const feature = key as Feature;
+          if (!featureStatus[feature].success) {
+            switch (key) {
+              case 'language-model':
+                return initializeLanguageModel().catch((err) => {
+                  console.error('LanguageModel init error:', err);
+                });
+              case 'translator':
+                return initializeTranslator().catch((err) => {
+                  console.error('Translator init error:', err);
+                });
+              case 'summarizer':
+                return initializeSummarizer().catch((err) => {
+                  console.error('Summarizer init error:', err);
+                });
+            }
           }
-          if (key === 'translator' && !featureStatus[key].success) {
-            // 如果 translator 還沒初始化，先初始化
-            initializeTranslator()
-              .then(() => {
-                console.log('[JPNEWS] Translator initialized');
-              })
-              .catch((error: any) => {
-                console.error('Error initializing Translator:', error);
-              });
-          }
-          if (key === 'summarizer' && !featureStatus[key].success) {
-            // 如果 summarizer 還沒初始化，先初始化
-            initializeSummarizer()
-              .then(() => {
-                console.log('[JPNEWS] Summarizer initialized');
-              })
-              .catch((error: any) => {
-                console.error('Error initializing Summarizer:', error);
-              });
-          }
+          return Promise.resolve(); // for features already initialized
         });
+
+        await Promise.all(initPromises); // will never reject, errors are logged individually
+
+        console.log('[JPNEWS] Feature status end:', featureStatus);
         port.postMessage({
           action,
           success: true,
@@ -556,8 +572,12 @@ async function initializeSummarizer() {
     notifyPopup('summarizer', true, 'Summarizer initialized successfully');
 
     console.log('[JPNEWS] Summarizer session created:', session_s);
-  } catch {
-    notifyPopup('summarizer', false, 'Error creating summarizer session');
+  } catch (err) {
+    notifyPopup(
+      'summarizer',
+      false,
+      `Error creating summarizer session ${err}`
+    );
   }
 }
 
@@ -592,8 +612,12 @@ async function initializeTranslator() {
     });
     console.log('[JPNEWs] Translator session created:', session_t_jp_en);
     notifyPopup('translator', true, 'Translator initialized successfully');
-  } catch {
-    notifyPopup('translator', false, 'Error creating Translator session');
+  } catch (err) {
+    notifyPopup(
+      'translator',
+      false,
+      `Error creating Translator session ${err}`
+    );
   }
 }
 
@@ -642,11 +666,11 @@ async function initializeLanguageModel() {
       true,
       'LanguageModel initialized successfully'
     );
-  } catch {
+  } catch (err) {
     notifyPopup(
       'language-model',
       false,
-      'Error creating LanguageModel session'
+      `Error creating LanguageModel session, ${err}`
     );
   }
 }
