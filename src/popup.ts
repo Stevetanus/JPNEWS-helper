@@ -9,36 +9,34 @@ const updateStatusBtn = <HTMLButtonElement>(
   document.getElementById('update-status-btn')
 );
 updateStatusBtn.addEventListener('click', async () => {
+  const overlay = document.getElementById('overlay')!;
+  overlay.style.display = 'flex';
   try {
-    const overlay = document.getElementById('overlay')!;
-    overlay.style.display = 'flex';
     // const status = await fetchFeatureStatus();
     console.log('start');
 
-    const status = await fetchFeatureStatusViaPort(port);
-    const isAllSuccess = Object.values(status).every((feature) => {
+    const featureStatus = await fetchFeatureStatusViaPort(port);
+    const isAllSuccess = Object.values(featureStatus).every((feature) => {
       return feature.success;
     });
 
     console.log('end: ', featureStatus);
-
-    overlay.style.display = 'none';
-    instruction.innerHTML = '* Use ctrl + j to open chat';
-    console.log('[JPNEWS] Model status:', status);
+    console.log('[JPNEWS] Model status:', featureStatus);
 
     // 之後試看看透過其他按鈕去預先取資料
-    return;
     // ✅ 這裡就可以拿 status 去做其他操作
-    const allReady = Object.values(status).every((f) => f.success);
-    if (allReady) {
-      await featchBackGroundInfo();
-      // chrome.runtime.sendMessage({
-      //   action: 'open-chat',
-      // });
-    }
+    // const allReady = Object.values(featureStatus).every((f) => f.success);
+    // if (allReady) {
+    //   await featchBackGroundInfo();
+    //   chrome.runtime.sendMessage({
+    //     action: 'open-chat',
+    //   });
+    // }
   } catch (err) {
     console.error(err);
   }
+  overlay.style.display = 'none';
+  instruction.innerHTML = '* Use ctrl + j to open chat';
 });
 
 const chatBtn = <HTMLButtonElement>document.getElementById('chat-btn');
@@ -68,6 +66,9 @@ async function fetchFeatureStatusViaPort(
         featureStatus: Record<string, { success: boolean; message: string }>;
       };
     }) => {
+      console.log({ response });
+      console.log(response.data);
+
       const featureStatus = response.data.featureStatus;
 
       Object.entries(featureStatus).forEach(([k, v]) => {
