@@ -13,10 +13,15 @@ updateStatusBtn.addEventListener('click', async () => {
     const overlay = document.getElementById('overlay')!;
     overlay.style.display = 'flex';
     // const status = await fetchFeatureStatus();
+    console.log('start');
+
     const status = await fetchFeatureStatusViaPort(port);
     const isAllSuccess = Object.values(status).every((feature) => {
       return feature.success;
     });
+
+    console.log('end: ', featureStatus);
+
     overlay.style.display = 'none';
     instruction.innerHTML = '* Use ctrl + j to open chat';
     console.log('[JPNEWS] Model status:', status);
