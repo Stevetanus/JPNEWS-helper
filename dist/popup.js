@@ -51,8 +51,6 @@ const port = chrome.runtime.connect({ name: 'popup-channel' });
 async function fetchFeatureStatusViaPort(port) {
     return new Promise((resolve, reject) => {
         const listener = (response) => {
-            console.log({ response });
-            console.log(response.data);
             const featureStatus = response.data.featureStatus;
             Object.entries(featureStatus).forEach(([k, v]) => {
                 const feature = k.replace('-status', '');

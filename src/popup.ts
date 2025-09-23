@@ -66,9 +66,6 @@ async function fetchFeatureStatusViaPort(
         featureStatus: Record<string, { success: boolean; message: string }>;
       };
     }) => {
-      console.log({ response });
-      console.log(response.data);
-
       const featureStatus = response.data.featureStatus;
 
       Object.entries(featureStatus).forEach(([k, v]) => {
