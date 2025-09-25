@@ -7,7 +7,7 @@ JP News Helper is an extension to help users learn Japanese through [NHK News Ea
 ## [Intro Video](https://youtu.be/fV98dxeJ_vU)
 
 ## Example: 
-Use extension on [news](https://www3.nhk.or.jp/news/easy/ne2025073112098/ne2025073112098.html)
+Use extension on news from NHK NEWS WEB EASY(https://www3.nhk.or.jp/news/easy/)
 
 ![Full Screen](static/jpnewshelper_0.png)
 
@@ -76,6 +76,7 @@ and put the schema to the prompt
 git clone
 npm install
 npx tsc // .ts file compile to .js file
+node addVersion.js 0.1.7 // to add version on this extension
 ```
 2. Upload extension
 * Go to manage extensions (chrome://extensions/)

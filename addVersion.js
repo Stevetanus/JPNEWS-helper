@@ -5,7 +5,7 @@ const path = require('path');
 const manifestPath = path.join(__dirname, 'manifest.json');
 const popupPath = path.join(__dirname, 'popup.html');
 
-const newVersion = process.argv[2] || '0.1.5';
+const newVersion = process.argv[2] || '0.1.7';
 
 // 1. update manifest.json
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
