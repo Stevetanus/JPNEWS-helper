@@ -6,28 +6,11 @@ console.log('[JPNEWS] Document ready state:', document.readyState);
 
 /*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
-// 只在 NHK Easy News 網頁執行
-if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
-  const urlSegments = window.location.pathname.split('/');
-  const lastSegment = urlSegments[urlSegments.length - 1];
-  const pageId = lastSegment.endsWith('.html')
-    ? lastSegment.replace('.html', '')
-    : lastSegment;
-
-  // 主動通知 background
-  chrome.runtime.sendMessage({
-    action: 'nhk-news-page',
-    pageId,
-    url: window.location.href,
-  });
-
-  let result = '';
-  document
-    .querySelectorAll('#js-article-body p')
-    .forEach((p) => (result += (p as HTMLParagraphElement).innerText + '\n'));
-
-  rawNews = result; // 儲存原始新聞內容
-}
+processNewsPage();
+const observer = new MutationObserver(() => {
+  processNewsPage();
+});
+observer.observe(document.body, { childList: true, subtree: true });
 
 const ACTION = {
   FLASHCARD_ADDED: 'flashcard-added',
@@ -42,6 +25,7 @@ let translateBtn: HTMLButtonElement | null = null;
 let analyzeBtn: HTMLButtonElement | null;
 let sidebar: HTMLDivElement | null = null;
 let header: HTMLDivElement | null = null;
+let closeBtn: HTMLButtonElement | null = null;
 let content: HTMLDivElement | null = null;
 let main: HTMLDivElement | null = null;
 let bgOverlay: HTMLDivElement | null = null;
@@ -87,6 +71,22 @@ function createSidebar() {
   header.style.fontWeight = 'bold';
   header.style.marginBottom = '8px';
   header.innerText = 'JP NEWS HELPER';
+  header.style.position = 'relative';
+  // 建立關閉按鈕
+  closeBtn = document.createElement('button');
+  closeBtn.innerText = 'X';
+  closeBtn.style.position = 'absolute';
+  closeBtn.style.right = '8px';
+  closeBtn.style.top = '50%';
+  closeBtn.style.transform = 'translateY(-50%)';
+  closeBtn.style.border = 'none';
+  closeBtn.style.background = 'transparent';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.style.fontSize = '14px';
+  closeBtn.addEventListener('click', () => {
+    toggleSidebar();
+  });
+  header.appendChild(closeBtn);
 
   // 內容區
   content = document.createElement('div');
@@ -523,6 +523,30 @@ function toggleSidebar(e?: KeyboardEvent) {
   } else {
     createSidebar();
     isChatOpen = true;
+  }
+}
+
+function processNewsPage() {
+  if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
+    const urlSegments = window.location.pathname.split('/');
+    const lastSegment = urlSegments[urlSegments.length - 1];
+    const pageId = lastSegment.endsWith('.html')
+      ? lastSegment.replace('.html', '')
+      : lastSegment;
+
+    // 主動通知 background
+    chrome.runtime.sendMessage({
+      action: 'nhk-news-page',
+      pageId,
+      url: window.location.href,
+    });
+
+    let result = '';
+    document
+      .querySelectorAll('#js-article-body p')
+      .forEach((p) => (result += (p as HTMLParagraphElement).innerText + '\n'));
+
+    rawNews = result; // 儲存原始新聞內容
   }
 }
 

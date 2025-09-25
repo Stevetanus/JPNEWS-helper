@@ -4,7 +4,6 @@ const closeDiv = document.getElementById('close');
 closeDiv!.addEventListener('click', () => {
   window.close(); // 直接關閉 popup
 });
-
 const updateStatusBtn = <HTMLButtonElement>(
   document.getElementById('update-status-btn')
 );
@@ -12,49 +11,83 @@ updateStatusBtn.addEventListener('click', async () => {
   const overlay = document.getElementById('overlay')!;
   overlay.style.display = 'flex';
   try {
-    // const status = await fetchFeatureStatus();
-    console.log('start');
-
+    console.log('start fetching feature status...');
     const featureStatus = await fetchFeatureStatusViaPort(port);
-    const isAllSuccess = Object.values(featureStatus).every((feature) => {
-      return feature.success;
-    });
 
-    console.log('end: ', featureStatus);
-    console.log('[JPNEWS] Model status:', featureStatus);
+    await setFeatureStatus(featureStatus);
 
-    // 之後試看看透過其他按鈕去預先取資料
-    // ✅ 這裡就可以拿 status 去做其他操作
-    // const allReady = Object.values(featureStatus).every((f) => f.success);
-    // if (allReady) {
-    //   await featchBackGroundInfo();
-    //   chrome.runtime.sendMessage({
-    //     action: 'open-chat',
-    //   });
+    // await setAllSuccess(isAllSuccess);
+
+    console.log('[JPNEWS] Feature status:', featureStatus);
+
+    // 更新 UI
+    updateUI(featureStatus);
+
+    // 之後可以在這裡做額外操作，例如 open-chat
+    // if (isAllSuccess) {
+    //   chrome.runtime.sendMessage({ action: 'open-chat' });
     // }
   } catch (err) {
     console.error(err);
+  } finally {
+    overlay.style.display = 'none';
   }
-  overlay.style.display = 'none';
-  instruction.innerHTML = '* Use ctrl + j to open chat';
 });
 
-const chatBtn = <HTMLButtonElement>document.getElementById('chat-btn');
-const instruction = <HTMLDivElement>document.getElementById('instruction');
+(async () => {
+  // await loadAllSuccess();
+  const res = await chrome.storage.local.get('featureStatus');
+  console.log('isAllSuccessFromStorage:', res);
+  if (!res.featureStatus) return;
+  updateUI(res.featureStatus);
+})();
 
 const port = chrome.runtime.connect({ name: 'popup-channel' });
+const chatBtn = <HTMLButtonElement>document.getElementById('chat-btn');
+chatBtn.addEventListener('click', async () => {
+  port.postMessage({ action: 'toggle-sidebar' });
+  window.close();
+});
+const instruction = <HTMLDivElement>document.getElementById('instruction');
 
-// chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//   chrome.tabs.sendMessage(tabs[0].id!, { action: 'check-chat' }, (response) => {
-//     if (chrome.runtime.lastError) {
-//       console.log(
-//         'Content script not ready or no sidebar:',
-//         chrome.runtime.lastError
-//       );
-//       return;
-//     }
-//   });
-// });
+function updateUI(
+  featureStatus: Record<string, { success: boolean; message: string }>
+) {
+  Object.entries(featureStatus).forEach(([k, v]) => {
+    const feature = k.replace('-status', '');
+    const statusEl = document.getElementById(`${feature}-status`);
+    const btnEl = document.getElementById(
+      `${feature}-btn`
+    ) as HTMLButtonElement;
+
+    if (v.success) {
+      statusEl!.textContent = `✅ ${feature} ready`;
+      btnEl.disabled = false;
+    } else {
+      statusEl!.textContent = `❌ ${v.message}`;
+      btnEl.disabled = true;
+    }
+  });
+  const chatBtn = document.getElementById('chat-btn') as HTMLButtonElement;
+  const instruction = document.getElementById('instruction')!;
+  // 判斷是否全部成功
+  const isAllSuccess = Object.values(featureStatus).every((f) => f.success);
+  if (isAllSuccess) {
+    chatBtn.style.display = 'block';
+    instruction.innerHTML = '* Use ctrl + j to open chat';
+  } else {
+    chatBtn.style.display = 'none';
+    instruction.innerHTML = '* Check model status';
+  }
+}
+
+async function setFeatureStatus(
+  featureStatus: Record<string, { success: boolean; message: string }>
+) {
+  chrome.storage.local.set({ featureStatus }, () => {
+    console.log('[JPNEWS] isAllSuccess saved:', featureStatus);
+  });
+}
 
 async function fetchFeatureStatusViaPort(
   port: chrome.runtime.Port
@@ -67,23 +100,6 @@ async function fetchFeatureStatusViaPort(
       };
     }) => {
       const featureStatus = response.data.featureStatus;
-
-      Object.entries(featureStatus).forEach(([k, v]) => {
-        const feature = k.replace('-status', '');
-        const statusEl = document.getElementById(`${feature}-status`);
-        const btnEl = document.getElementById(
-          `${feature}-btn`
-        ) as HTMLButtonElement;
-
-        if (v.success) {
-          statusEl!.textContent = `✅ ${feature} ready`;
-          btnEl.disabled = false;
-        } else {
-          statusEl!.textContent = `❌ ${v.message}`;
-          btnEl.disabled = true;
-        }
-      });
-
       resolve(featureStatus);
       port.onMessage.removeListener(listener); // 移除 listener 避免累積
     };
@@ -93,6 +109,7 @@ async function fetchFeatureStatusViaPort(
   });
 }
 
+// below functions are not used currently, but might be useful in the future
 async function featchBackGroundInfo() {
   const getTextFromContent = () =>
     new Promise<string>((resolve, reject) => {

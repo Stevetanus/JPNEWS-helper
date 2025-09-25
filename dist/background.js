@@ -48,24 +48,7 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
     //     .catch((err) => console.error('[JPNEWS] Failed to query tab:', err));
     // }
     if (command === 'toggle-sidebar') {
-        try {
-            const tabs = await chrome.tabs.query({
-                active: true,
-                currentWindow: true,
-            });
-            const activeTab = tabs[0];
-            if (!activeTab?.id) {
-                console.warn('[JPNEWS] No active tab found');
-                return;
-            }
-            const response = await chrome.tabs.sendMessage(activeTab.id, {
-                action: 'toggle-sidebar',
-            });
-            console.log('[JPNEWS] Sidebar toggled successfully:', response);
-        }
-        catch (err) {
-            console.error('[JPNEWS] Error toggling sidebar:', err);
-        }
+        await toggleSidebarFromBackground();
     }
 });
 chrome.runtime.onInstalled.addListener(() => {
@@ -228,6 +211,9 @@ chrome.runtime.onConnect.addListener((port) => {
                 });
                 return true;
             }
+            if (action === 'toggle-sidebar') {
+                await toggleSidebarFromBackground();
+            }
         });
     }
 });
@@ -331,6 +317,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 });
+async function toggleSidebarFromBackground() {
+    try {
+        const tabs = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+        });
+        const activeTab = tabs[0];
+        if (!activeTab?.id) {
+            console.warn('[JPNEWS] No active tab found');
+            return;
+        }
+        const response = await chrome.tabs.sendMessage(activeTab.id, {
+            action: 'toggle-sidebar',
+        });
+        console.log('[JPNEWS] Sidebar toggled successfully:', response);
+    }
+    catch (err) {
+        console.error('[JPNEWS] Error toggling sidebar:', err);
+    }
+}
 /** get value from extension storage local */
 async function getFromStorage(key) {
     const ki = `${pageId}-${key}`;
