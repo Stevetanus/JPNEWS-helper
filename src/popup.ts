@@ -37,7 +37,6 @@ updateStatusBtn.addEventListener('click', async () => {
 (async () => {
   // await loadAllSuccess();
   const res = await chrome.storage.local.get('featureStatus');
-  console.log('isAllSuccessFromStorage:', res);
   if (!res.featureStatus) return;
   updateUI(res.featureStatus);
 })();

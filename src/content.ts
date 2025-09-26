@@ -7,10 +7,6 @@ console.log('[JPNEWS] Document ready state:', document.readyState);
 /*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
 processNewsPage();
-const observer = new MutationObserver(() => {
-  processNewsPage();
-});
-observer.observe(document.body, { childList: true, subtree: true });
 
 const ACTION = {
   FLASHCARD_ADDED: 'flashcard-added',
@@ -527,6 +523,7 @@ function toggleSidebar(e?: KeyboardEvent) {
 }
 
 function processNewsPage() {
+  console.count('processNewsPage called');
   if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
     const urlSegments = window.location.pathname.split('/');
     const lastSegment = urlSegments[urlSegments.length - 1];
