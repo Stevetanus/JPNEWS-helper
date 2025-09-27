@@ -19,6 +19,8 @@ const featureStatus: Record<Feature, { success: boolean; message: string }> = {
 let session_l: any;
 /** Translator session for Japnanese to English */
 let session_t_jp_en: any;
+/** Translator session for Japnanese to Mandarin */
+let session_t_en_zhHant: any;
 /** Summarizer session  */
 let session_s: any;
 /** Page Id get from NHK News Easy url */
@@ -137,7 +139,6 @@ chrome.runtime.onConnect.addListener((port) => {
         (async () => {
           try {
             const raw = await analyzeText(text);
-            await setToStorage('raw', { raw, savedAt: Date.now() });
 
             let words: Word[] = [];
             try {
@@ -170,7 +171,6 @@ chrome.runtime.onConnect.addListener((port) => {
         (async () => {
           try {
             const sum = await summarizeText(text);
-            await setToStorage('sum', { sum, saveAt: Date.now() });
             port.postMessage({
               action,
               success: true,
@@ -271,7 +271,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       try {
         const raw = await analyzeText(text);
-        await setToStorage('raw', { raw, saveAt: Date.now() });
 
         let words: Word[] = [];
         try {
@@ -300,7 +299,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         console.log('[JPNEWS] Summarizer request:', { text });
         const sum = await summarizeText(text);
-        await setToStorage('sum', { sum, savedAt: Date.now() });
         console.log('[JPNEWS] Summarizer result:', { sum });
 
         sendResponse({
@@ -389,21 +387,38 @@ async function setToStorage<T = any>(key: string, value: T): Promise<void> {
 }
 
 async function summarizeText(text: string) {
+  const selectedLang = await getTranslatorLanguage();
   let sumStorage = await getFromStorage('sum');
   if (sumStorage) {
+    if (selectedLang === 'zh-Hant') {
+      return await session_t_en_zhHant.translate(sumStorage.sum);
+    }
     return sumStorage.sum;
   }
 
   const response: string = await session_s.summarize(text);
+  await setToStorage('sum', { sum: response, savedAt: Date.now() });
+  if (selectedLang === 'zh-Hant') {
+    return await session_t_en_zhHant.translate(response);
+  }
   return response;
   // 未來再處理看看 stream
   // const stream = await session_s.summarizeStreaming(text);
   // return stream;
 }
 
+async function getTranslatorLanguage(): Promise<'en' | 'zh-Hant'> {
+  const res = await chrome.storage.local.get('translatorLanguage');
+  return res.translatorLanguage || 'en';
+}
+
 async function translateText(text: string) {
-  const result = await session_t_jp_en.translate(text);
-  return result;
+  const jpToEnText = await session_t_jp_en.translate(text);
+  const selectedLang = await getTranslatorLanguage();
+  if (selectedLang === 'zh-Hant') {
+    return await session_t_en_zhHant.translate(jpToEnText);
+  }
+  return jpToEnText;
 }
 
 async function analyzeText(text: string) {
@@ -442,7 +457,7 @@ async function analyzeText(text: string) {
   const response = await session_l.prompt(finalPrompt, {
     responseConstraint: schema,
   });
-
+  await setToStorage('raw', { raw: response, savedAt: Date.now() });
   return response;
 }
 
@@ -615,7 +630,28 @@ async function initializeTranslator() {
         });
       },
     });
-    console.log('[JPNEWs] Translator session created:', session_t_jp_en);
+    // to move out from initializeTranslator later
+    session_t_en_zhHant = await Translator.create({
+      sourceLanguage: 'en',
+      targetLanguage: 'zh-Hant',
+      monitor(m: any) {
+        m.addEventListener('downloadprogress', (e: any) => {
+          const percent = (e.loaded * 100).toFixed(1);
+          console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
+
+          if (e.loaded === 1) {
+          }
+        });
+      },
+    });
+    console.log(
+      '[JPNEWs] Translator session created(jp -> en):',
+      session_t_jp_en
+    );
+    console.log(
+      '[JPNEWs] Translator session created(en -> zh-Hant):',
+      session_t_en_zhHant
+    );
     notifyPopup('translator', true, 'Translator initialized successfully');
   } catch (err) {
     notifyPopup(

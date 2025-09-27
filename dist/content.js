@@ -7,10 +7,6 @@ console.log('[JPNEWS] Document ready state:', document.readyState);
 /*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
 processNewsPage();
-// const observer = new MutationObserver(() => {
-//   processNewsPage();
-// });
-// observer.observe(document.body, { childList: true, subtree: true });
 const ACTION = {
     FLASHCARD_ADDED: 'flashcard-added',
     content_TEXT: 'analyze-text',
@@ -35,7 +31,7 @@ let chatForm = null;
 let chatInput = null;
 let sendBtn = null;
 let switchBtn = null;
-let isChatOpen = false;
+let isSidebarOpen = false;
 let userMsgList = [];
 let botMsgList = [];
 let controlsDiv = null;
@@ -344,7 +340,7 @@ function createSidebar() {
     const labels = ['Summarize', 'Translate', 'Vocabulary'];
     const callbacks = [
         (active) => (active ? summarizeNews : cleanMain),
-        (active) => (active ? translateNews : () => translateNews(true)),
+        (active) => (active ? translateNews : () => translateNews()),
         (active) => (active ? analyzeNews : cleanMain),
     ];
     toggleButtons = createMutuallyExclusiveToggles(labels, callbacks);
@@ -401,6 +397,7 @@ function createMutuallyExclusiveToggles(labels, callbacks) {
         buttons.push(btn);
     });
     chrome.runtime.sendMessage({ action: 'get-feature-status' }, (response) => {
+        console.log({ response });
         // 初始 hide
         hideOverlay();
         const featureStatus = response.data.featureStatus;
@@ -444,12 +441,15 @@ function makeDraggable(dragHandle, el) {
 }
 function toggleSidebar(e) {
     if (sidebar && document.body.contains(sidebar)) {
+        // 移除翻譯
+        isSidebarOpen = false;
+        translateNews(true);
         sidebar.remove();
         window.removeEventListener('keydown', toggleSidebar);
     }
     else {
         createSidebar();
-        isChatOpen = true;
+        isSidebarOpen = true;
     }
 }
 function processNewsPage() {
@@ -492,15 +492,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({
             success: true,
             data: {
-                isChatOpen,
+                isSidebarOpen,
             },
         });
     }
-    else if (msg.action === 'check-chat') {
+    else if (msg.action === 'check-sidebar') {
         sendResponse({
             success: true,
             data: {
-                isChatOpen,
+                isSidebarOpen,
             },
         });
     }
@@ -613,8 +613,9 @@ async function summarizeNews() {
     });
 }
 /** translate news title and content  */
-async function translateNews(close = false) {
-    if (close) {
+async function translateNews(toClose = false) {
+    const translatedLines = document.querySelectorAll('[id^="jp_news-"]');
+    if (translatedLines.length || toClose) {
         // 移除先前插入的翻譯
         document.querySelectorAll('[id^="jp_news-"]').forEach((el) => el.remove());
     }
@@ -624,7 +625,7 @@ async function translateNews(close = false) {
             action: 'translate-text',
             text: h1.innerText,
         }, (apiResponse) => {
-            if (isChatOpen) {
+            if (isSidebarOpen) {
                 h1.insertAdjacentHTML('afterend', `<div id=jp_news-title>${apiResponse.data.translation}</div>`);
             }
         });
@@ -632,7 +633,7 @@ async function translateNews(close = false) {
             action: 'translate-text',
             text: p.innerText,
         }, (apiResponse) => {
-            if (isChatOpen) {
+            if (isSidebarOpen) {
                 // 在每個 <p> 後面插入翻譯
                 p.insertAdjacentHTML('afterend', `<div id=jp_news-${i}>${apiResponse.data.translation}</div>`);
             }

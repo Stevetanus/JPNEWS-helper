@@ -33,7 +33,7 @@ let chatForm: HTMLFormElement | null = null;
 let chatInput: HTMLInputElement | null = null;
 let sendBtn: HTMLButtonElement | null = null;
 let switchBtn: HTMLButtonElement | null = null;
-let isChatOpen = false;
+let isSidebarOpen = false;
 let userMsgList: HTMLDivElement[] = [];
 let botMsgList: HTMLDivElement[] = [];
 let controlsDiv: HTMLDivElement | null = null;
@@ -386,7 +386,7 @@ function createSidebar() {
   const labels = ['Summarize', 'Translate', 'Vocabulary'];
   const callbacks = [
     (active: boolean) => (active ? summarizeNews : cleanMain),
-    (active: boolean) => (active ? translateNews : () => translateNews(true)),
+    (active: boolean) => (active ? translateNews : () => translateNews()),
     (active: boolean) => (active ? analyzeNews : cleanMain),
   ];
 
@@ -514,11 +514,14 @@ function makeDraggable(dragHandle: HTMLElement, el: HTMLElement) {
 
 function toggleSidebar(e?: KeyboardEvent) {
   if (sidebar && document.body.contains(sidebar)) {
+    // 移除翻譯
+    isSidebarOpen = false;
+    translateNews(true);
     sidebar.remove();
     window.removeEventListener('keydown', toggleSidebar);
   } else {
     createSidebar();
-    isChatOpen = true;
+    isSidebarOpen = true;
   }
 }
 
@@ -564,14 +567,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({
       success: true,
       data: {
-        isChatOpen,
+        isSidebarOpen,
       },
     });
-  } else if (msg.action === 'check-chat') {
+  } else if (msg.action === 'check-sidebar') {
     sendResponse({
       success: true,
       data: {
-        isChatOpen,
+        isSidebarOpen,
       },
     });
   } else if (msg.action === 'analyze-text-background') {
@@ -718,8 +721,9 @@ async function summarizeNews() {
   );
 }
 /** translate news title and content  */
-async function translateNews(close = false) {
-  if (close) {
+async function translateNews(toClose = false) {
+  const translatedLines = document.querySelectorAll('[id^="jp_news-"]');
+  if (translatedLines.length || toClose) {
     // 移除先前插入的翻譯
     document.querySelectorAll('[id^="jp_news-"]').forEach((el) => el.remove());
   } else {
@@ -734,7 +738,7 @@ async function translateNews(close = false) {
         success: boolean;
         data: { length: string; translation: string };
       }) => {
-        if (isChatOpen) {
+        if (isSidebarOpen) {
           h1.insertAdjacentHTML(
             'afterend',
             `<div id=jp_news-title>${apiResponse.data.translation}</div>`
@@ -753,7 +757,7 @@ async function translateNews(close = false) {
           success: boolean;
           data: { length: string; translation: string };
         }) => {
-          if (isChatOpen) {
+          if (isSidebarOpen) {
             // 在每個 <p> 後面插入翻譯
             p.insertAdjacentHTML(
               'afterend',

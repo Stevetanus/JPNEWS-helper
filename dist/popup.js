@@ -1,6 +1,4 @@
 "use strict";
-const result = document.getElementById('result');
-const analyze = document.getElementById('analyze');
 const closeDiv = document.getElementById('close');
 closeDiv.addEventListener('click', () => {
     window.close(); // 直接關閉 popup
@@ -13,7 +11,6 @@ updateStatusBtn.addEventListener('click', async () => {
         console.log('start fetching feature status...');
         const featureStatus = await fetchFeatureStatusViaPort(port);
         await setFeatureStatus(featureStatus);
-        // await setAllSuccess(isAllSuccess);
         console.log('[JPNEWS] Feature status:', featureStatus);
         // 更新 UI
         updateUI(featureStatus);
@@ -29,14 +26,38 @@ updateStatusBtn.addEventListener('click', async () => {
         overlay.style.display = 'none';
     }
 });
+const languageSelect = document.getElementById('language-select');
+languageSelect.addEventListener('change', async (event) => {
+    const target = event.target;
+    const selectedLang = target.value;
+    chrome.storage.local.set({ translatorLanguage: selectedLang });
+    // 如果側邊欄是開啟的，則關閉它
+    const isSidebarOpen = await getSidebarOpen();
+    if (isSidebarOpen) {
+        port.postMessage({ action: 'toggle-sidebar' });
+        const chatBtn = document.getElementById('chat-btn');
+        chatBtn.textContent = 'Open Chat';
+    }
+});
 (async () => {
-    // await loadAllSuccess();
-    const res = await chrome.storage.local.get('featureStatus');
-    if (!res.featureStatus)
-        return;
-    updateUI(res.featureStatus);
+    const resF = await chrome.storage.local.get('featureStatus');
+    const resT = await chrome.storage.local.get('translatorLanguage');
+    if (resF.featureStatus) {
+        updateUI(resF.featureStatus);
+    }
+    if (resT.translatorLanguage) {
+        languageSelect.value = resT.translatorLanguage;
+    }
 })();
 const port = chrome.runtime.connect({ name: 'popup-channel' });
+// sidebar 狀態檢查
+(async () => {
+    const isSidebarOpen = await getSidebarOpen();
+    if (isSidebarOpen) {
+        const chatBtn = document.getElementById('chat-btn');
+        chatBtn.textContent = 'Close Chat';
+    }
+})();
 const chatBtn = document.getElementById('chat-btn');
 chatBtn.addEventListener('click', async () => {
     port.postMessage({ action: 'toggle-sidebar' });
@@ -70,9 +91,25 @@ function updateUI(featureStatus) {
         instruction.innerHTML = '* Check model status';
     }
 }
+async function getSidebarOpen() {
+    const tab = await getActiveTab();
+    return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tab.id, { action: 'check-sidebar' }, (response) => {
+            if (chrome.runtime.lastError) {
+                return reject(chrome.runtime.lastError);
+            }
+            const isSidebarOpen = response?.data?.isSidebarOpen;
+            resolve(isSidebarOpen);
+        });
+    });
+}
+async function getActiveTab() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab;
+}
 async function setFeatureStatus(featureStatus) {
     chrome.storage.local.set({ featureStatus }, () => {
-        console.log('[JPNEWS] isAllSuccess saved:', featureStatus);
+        console.log('[JPNEWS] featureStatus saved:', featureStatus);
     });
 }
 async function fetchFeatureStatusViaPort(port) {
