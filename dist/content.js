@@ -397,7 +397,6 @@ function createMutuallyExclusiveToggles(labels, callbacks) {
         buttons.push(btn);
     });
     chrome.runtime.sendMessage({ action: 'get-feature-status' }, (response) => {
-        console.log({ response });
         // 初始 hide
         hideOverlay();
         const featureStatus = response.data.featureStatus;
