@@ -6,6 +6,7 @@ console.log('[JPNEWS] Document ready state:', document.readyState);
 
 /*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
+const nhkNewsEasyUrl = 'https://news.web.nhk/news/easy/';
 processNewsPage();
 
 const ACTION = {
@@ -179,6 +180,8 @@ function createSidebar() {
   chatInput.type = 'text';
   chatInput.placeholder = 'Better start with buttons!!!';
   chatInput.style.flex = '1';
+  chatInput.style.paddingLeft = '8px';
+  chatInput.style.border = '1px solid #ccc';
   chatInput.style.borderRadius = '4px';
   chatInput!.setAttribute('autocomplete', 'off');
 
@@ -426,6 +429,8 @@ function createMutuallyExclusiveToggles(
     btn.style.padding = '4px 6px';
     btn.style.fontSize = '12px';
     btn.style.cursor = 'pointer';
+    btn.style.border = '1px solid #ccc';
+    btn.style.borderRadius = '4px';
 
     btn.dataset.active = 'false';
 
@@ -527,7 +532,7 @@ function toggleSidebar(e?: KeyboardEvent) {
 
 function processNewsPage() {
   console.count('processNewsPage called');
-  if (window.location.href.includes('https://www3.nhk.or.jp/news/easy/')) {
+  if (window.location.href.includes(nhkNewsEasyUrl)) {
     const urlSegments = window.location.pathname.split('/');
     const lastSegment = urlSegments[urlSegments.length - 1];
     const pageId = lastSegment.endsWith('.html')
@@ -648,6 +653,8 @@ async function analyzeNews() {
 
       const copyBtn = document.createElement('button');
       copyBtn.innerText = 'Copy Table';
+      copyBtn.style.border = '1px solid #ccc';
+      copyBtn.style.borderRadius = '4px';
       copyBtn.style.paddingLeft = '4px';
       copyBtn.style.paddingRight = '4px';
       copyBtn.style.margin = '8px 0';

@@ -56,6 +56,17 @@ languageSelect!.addEventListener('change', async (event) => {
 })();
 
 const port = chrome.runtime.connect({ name: 'popup-channel' });
+port.onMessage.addListener((msg) => {
+  if (msg.action.startsWith('download_progress_')) {
+    const feature = msg.action.replace('download_progress_', '');
+    const percent = msg.data.percent;
+    // 動態更新 UI
+    const el = document.getElementById(`${feature}-status`);
+    if (el && !el?.textContent) {
+      el.textContent = `${feature}: ${percent}%`;
+    }
+  }
+});
 // sidebar 狀態檢查
 (async () => {
   const isSidebarOpen = await getSidebarOpen();

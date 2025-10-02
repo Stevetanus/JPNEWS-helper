@@ -25,35 +25,14 @@ let session_t_en_zhHant: any;
 let session_s: any;
 /** Page Id get from NHK News Easy url */
 let pageId = '';
+/** port connect popup and background */
+let popupPort: chrome.runtime.Port | null = null;
 
 chrome.commands.onCommand.addListener(async (command, tab) => {
   // Check if tab is ready
   if (tab!.status !== 'complete') {
     console.warn('[JPNEWS] Tab is not ready, status:', tab!.status);
   }
-  // if (command === 'toggle-sidebar') {
-  //   // 查詢目前 active tab
-  //   chrome.tabs
-  //     .query({ active: true, currentWindow: true })
-  //     .then((tabs) => {
-  //       const tab = tabs[0];
-
-  //       if (!tab?.id) {
-  //         console.warn('[JPNEWS] No active tab found');
-  //         return;
-  //       }
-
-  //       chrome.tabs
-  //         .sendMessage(tab.id, { action: 'toggle-sidebar' })
-  //         .then((response) => {
-  //           console.log('[JPNEWS] Sidebar toggled successfully:', response);
-  //         })
-  //         .catch((err) => {
-  //           console.error('[JPNEWS] Error toggling sidebar:', err);
-  //         });
-  //     })
-  //     .catch((err) => console.error('[JPNEWS] Failed to query tab:', err));
-  // }
 
   if (command === 'toggle-sidebar') {
     await toggleSidebarFromBackground();
@@ -102,6 +81,10 @@ chrome.runtime.onConnect.addListener((port) => {
   console.log('[JPNEWS] Port connected:', port.name);
 
   if (port.name === 'popup-channel') {
+    popupPort = port;
+    port.onDisconnect.addListener(() => {
+      popupPort = null;
+    });
     port.onMessage.addListener(async (msg) => {
       const { action, text } = msg;
       if (action === 'translate-text') {
@@ -584,6 +567,10 @@ async function initializeSummarizer() {
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           console.log(`[JPNEWS] Summarizer Downloaded ${e.loaded * 100}%`);
+          sendDownloadProgress((e.loaded * 100).toFixed(1), 'summarizer');
+          if (e.loaded === 1) {
+            console.log('[JPNEWs] Summarizer fully downloaded. Ready to use!');
+          }
         });
       },
     };
@@ -624,9 +611,6 @@ async function initializeTranslator() {
         m.addEventListener('downloadprogress', (e: any) => {
           const percent = (e.loaded * 100).toFixed(1);
           console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
-
-          if (e.loaded === 1) {
-          }
         });
       },
     });
@@ -638,9 +622,6 @@ async function initializeTranslator() {
         m.addEventListener('downloadprogress', (e: any) => {
           const percent = (e.loaded * 100).toFixed(1);
           console.log(`[JPNEWS] Translator Downloaded ${percent}%`);
-
-          if (e.loaded === 1) {
-          }
         });
       },
     });
@@ -692,7 +673,7 @@ async function initializeLanguageModel() {
         m.addEventListener('downloadprogress', (e: any) => {
           const percent = (e.loaded * 100).toFixed(1);
           console.log(`[JPNEWS] Language Model Downloaded ${percent}%`);
-
+          sendDownloadProgress(percent, 'language-model');
           if (e.loaded === 1) {
             console.log(
               '[JPNEWs] Language Model fully downloaded. Ready to use!'
@@ -715,7 +696,21 @@ async function initializeLanguageModel() {
     );
   }
 }
-
+// 在 monitor 裡傳進度
+function sendDownloadProgress(percent: string, feature: Feature) {
+  if (popupPort) {
+    try {
+      popupPort.postMessage({
+        action: `download_progress_${feature}`,
+        success: true,
+        data: { percent },
+      });
+    } catch (e) {
+      console.warn('Popup port disconnected:', e);
+      popupPort = null;
+    }
+  }
+}
 /**
  * Notify the popup about the status of a feature.
  * @param feature The feature to notify about (summarizer, translator, language-model).
