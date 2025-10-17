@@ -1,5 +1,5 @@
 "use strict";
-const featureStatus = {
+let featureStatus = {
     summarizer: {
         success: false,
         message: 'Summarizer not initialized',
@@ -298,6 +298,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
         })();
         return true;
+    }
+});
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    const resF = await chrome.storage.local.get('featureStatus');
+    if (resF.featureStatus) {
+        featureStatus = resF.featureStatus;
     }
 });
 async function toggleSidebarFromBackground() {

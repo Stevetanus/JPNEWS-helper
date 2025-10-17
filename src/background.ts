@@ -1,7 +1,7 @@
 declare const LanguageModel: any;
 declare const Translator: any;
 declare const Summarizer: any;
-const featureStatus: Record<Feature, { success: boolean; message: string }> = {
+let featureStatus: Record<Feature, { success: boolean; message: string }> = {
   summarizer: {
     success: false,
     message: 'Summarizer not initialized',
@@ -322,6 +322,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+chrome.tabs.onUpdated.addListener(
+  async (
+    tabId: number,
+    changeInfo: chrome.tabs.OnUpdatedInfo,
+    tab: chrome.tabs.Tab
+  ) => {
+    const resF = await chrome.storage.local.get('featureStatus');
+    if (resF.featureStatus) {
+      featureStatus = resF.featureStatus;
+    }
+  }
+);
 
 async function toggleSidebarFromBackground() {
   try {

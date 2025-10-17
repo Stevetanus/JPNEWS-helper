@@ -11,7 +11,8 @@ processNewsPage();
 
 const ACTION = {
   FLASHCARD_ADDED: 'flashcard-added',
-  content_TEXT: 'analyze-text',
+  TOGGLE_SIDEBAR: 'toggle-sidebar',
+  CHECK_SIDEBAR: 'check-sidebar',
 };
 
 let mainStatus: 'chat' | 'sum' | 'analyze' | 'empty' = 'empty';
@@ -25,22 +26,21 @@ let header: HTMLDivElement | null = null;
 let closeBtn: HTMLButtonElement | null = null;
 let content: HTMLDivElement | null = null;
 let main: HTMLDivElement | null = null;
-let bgOverlay: HTMLDivElement | null = null;
 /*** overlay to cover chat screen */
 let overlay: HTMLDivElement | null = null;
 let spinner: HTMLDivElement | null = null;
-let chat: HTMLDivElement | null = null;
 let chatForm: HTMLFormElement | null = null;
 let chatInput: HTMLInputElement | null = null;
 let sendBtn: HTMLButtonElement | null = null;
 let switchBtn: HTMLButtonElement | null = null;
-let isSidebarOpen = false;
 let userMsgList: HTMLDivElement[] = [];
 let botMsgList: HTMLDivElement[] = [];
 let controlsDiv: HTMLDivElement | null = null;
 let prevBtn: HTMLButtonElement | null = null;
 let nextBtn: HTMLButtonElement | null = null;
+let isSidebarOpen = false;
 
+// open sidebar
 function createSidebar() {
   sidebar = document.createElement('div');
 
@@ -59,7 +59,6 @@ function createSidebar() {
   sidebar.style.resize = 'both';
   sidebar.style.minWidth = '200px';
   sidebar.style.minHeight = '200px';
-
   // 上方 tab / header
   header = document.createElement('div');
   header.style.backgroundColor = '#eee';
@@ -84,7 +83,6 @@ function createSidebar() {
     toggleSidebar();
   });
   header.appendChild(closeBtn);
-
   // 內容區
   content = document.createElement('div');
   content.style.gap = '8px';
@@ -105,7 +103,7 @@ function createSidebar() {
   content.appendChild(main);
 
   main.style.position = 'relative';
-
+  // 遮罩
   overlay = document.createElement('div');
   overlay.id = 'jpnews-overlay';
   overlay.style.position = 'absolute';
@@ -124,7 +122,6 @@ function createSidebar() {
   overlay.style.alignItems = 'center';
   overlay.style.zIndex = '1000';
   overlay.innerText = 'Loading...';
-
   // 建立 spinner
   spinner = document.createElement('div');
   spinner.id = 'jpnews-spinner';
@@ -134,7 +131,6 @@ function createSidebar() {
   spinner.style.borderTop = '4px solid #333';
   spinner.style.borderRadius = '50%';
   spinner.style.animation = 'spin 1s linear infinite';
-
   // 加上動畫 (只需要一次)
   const style = document.createElement('style');
   style.textContent = `
@@ -148,7 +144,7 @@ function createSidebar() {
   overlay.appendChild(spinner);
   sidebar.appendChild(overlay);
 
-  // 建立容器
+  // 建立表單以輸入訊息
   chatForm = document.createElement('form');
   chatForm.style.width = '100%';
   chatForm.style.height = '40px';
@@ -157,21 +153,6 @@ function createSidebar() {
   chatForm.style.backgroundColor = '#f9f9f9';
   chatForm.style.border = 'none';
   chatForm.style.fontSize = '16px';
-
-  // 建立切換按鈕
-  // switchBtn = document.createElement('button');
-  // switchBtn.type = 'submit';
-  // switchBtn.innerText = '^';
-  // switchBtn.style.width = '40px';
-  // switchBtn.style.padding = '8px 12px';
-  // switchBtn.style.border = 'none';
-  // switchBtn.style.backgroundColor = '#4caf50';
-  // switchBtn.style.color = '#fff';
-  // switchBtn.style.borderRadius = '4px';
-  // switchBtn.style.cursor = 'pointer';
-  // switchBtn.style.display = 'flex';
-  // switchBtn.style.justifyContent = 'center';
-  // switchBtn.style.alignItems = 'center';
 
   // 建立輸入框
   chatInput = document.createElement('input');
@@ -208,7 +189,6 @@ function createSidebar() {
   sendBtn.style.alignItems = 'center';
 
   // 把輸入框和按鈕加到表單
-  // chatForm.appendChild(switchBtn);
   chatForm.appendChild(chatInput);
   chatForm.appendChild(sendBtn);
 
@@ -394,7 +374,6 @@ function createSidebar() {
   ];
 
   toggleButtons = createMutuallyExclusiveToggles(labels, callbacks);
-
   // 加進 buttons
   toggleButtons.forEach((btn) => buttons!.appendChild(btn));
 
@@ -407,7 +386,6 @@ function createSidebar() {
 
   // Ctrl + J 打開/關閉 sidebar
   window.addEventListener('keydown', closeSidebar);
-
   function closeSidebar(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       sidebar!.remove();
@@ -421,7 +399,6 @@ function createMutuallyExclusiveToggles(
   callbacks: ((active: boolean) => (...args: any[]) => any)[]
 ) {
   const buttons: HTMLButtonElement[] = [];
-
   labels.forEach((label, idx) => {
     const btn = document.createElement('button');
     btn.id = `${label.toLowerCase()}-toggle`;
@@ -431,12 +408,10 @@ function createMutuallyExclusiveToggles(
     btn.style.cursor = 'pointer';
     btn.style.border = '1px solid #ccc';
     btn.style.borderRadius = '4px';
-
     btn.dataset.active = 'false';
 
     btn.addEventListener('click', (event) => {
       const isActive = btn.dataset.active === 'true';
-
       // Translate 獨立控制
       // 先關掉其他按鈕
       if (btn.innerText !== 'Translate') {
@@ -556,7 +531,7 @@ function processNewsPage() {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action === 'flashcard-added') {
+  if (msg.action === ACTION.FLASHCARD_ADDED) {
     alert(`已加入單字: ${msg.word}`);
   } else if (msg.action === 'get-text') {
     // 是為了在 popup 更新裡面的 rawNews 取得新聞文字
@@ -567,7 +542,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ text: result });
     rawNews = result; // 儲存原始新聞內容
     return true; // 表示會異步回應
-  } else if (msg.action === 'toggle-sidebar') {
+  } else if (msg.action === ACTION.TOGGLE_SIDEBAR) {
     toggleSidebar();
     sendResponse({
       success: true,
@@ -575,20 +550,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         isSidebarOpen,
       },
     });
-  } else if (msg.action === 'check-sidebar') {
+  } else if (msg.action === ACTION.CHECK_SIDEBAR) {
     sendResponse({
       success: true,
       data: {
         isSidebarOpen,
       },
     });
-  } else if (msg.action === 'analyze-text-background') {
-    const toggleVoc = <HTMLButtonElement>(
-      document.getElementById('vocabulary-toggle')
-    );
-    if (toggleVoc) {
-      toggleVoc.disabled = false;
-    }
   }
 });
 /** analyze news and create 10 vocabulary */
@@ -777,7 +745,7 @@ async function translateNews(toClose = false) {
   }
   return true;
 }
-
+// --- sidebar 畫面操作 ---
 const cleanMain = () => {
   Array.from(main!.children).forEach((child) => {
     main!.removeChild(child);

@@ -10,7 +10,8 @@ const nhkNewsEasyUrl = 'https://news.web.nhk/news/easy/';
 processNewsPage();
 const ACTION = {
     FLASHCARD_ADDED: 'flashcard-added',
-    content_TEXT: 'analyze-text',
+    TOGGLE_SIDEBAR: 'toggle-sidebar',
+    CHECK_SIDEBAR: 'check-sidebar',
 };
 let mainStatus = 'empty';
 let buttons = null;
@@ -23,21 +24,20 @@ let header = null;
 let closeBtn = null;
 let content = null;
 let main = null;
-let bgOverlay = null;
 /*** overlay to cover chat screen */
 let overlay = null;
 let spinner = null;
-let chat = null;
 let chatForm = null;
 let chatInput = null;
 let sendBtn = null;
 let switchBtn = null;
-let isSidebarOpen = false;
 let userMsgList = [];
 let botMsgList = [];
 let controlsDiv = null;
 let prevBtn = null;
 let nextBtn = null;
+let isSidebarOpen = false;
+// open sidebar
 function createSidebar() {
     sidebar = document.createElement('div');
     sidebar.id = 'jpnews-sidebar';
@@ -97,6 +97,7 @@ function createSidebar() {
     main.style.paddingRight = '4px';
     content.appendChild(main);
     main.style.position = 'relative';
+    // 遮罩
     overlay = document.createElement('div');
     overlay.id = 'jpnews-overlay';
     overlay.style.position = 'absolute';
@@ -133,7 +134,7 @@ function createSidebar() {
     document.head.appendChild(style);
     overlay.appendChild(spinner);
     sidebar.appendChild(overlay);
-    // 建立容器
+    // 建立表單以輸入訊息
     chatForm = document.createElement('form');
     chatForm.style.width = '100%';
     chatForm.style.height = '40px';
@@ -142,20 +143,6 @@ function createSidebar() {
     chatForm.style.backgroundColor = '#f9f9f9';
     chatForm.style.border = 'none';
     chatForm.style.fontSize = '16px';
-    // 建立切換按鈕
-    // switchBtn = document.createElement('button');
-    // switchBtn.type = 'submit';
-    // switchBtn.innerText = '^';
-    // switchBtn.style.width = '40px';
-    // switchBtn.style.padding = '8px 12px';
-    // switchBtn.style.border = 'none';
-    // switchBtn.style.backgroundColor = '#4caf50';
-    // switchBtn.style.color = '#fff';
-    // switchBtn.style.borderRadius = '4px';
-    // switchBtn.style.cursor = 'pointer';
-    // switchBtn.style.display = 'flex';
-    // switchBtn.style.justifyContent = 'center';
-    // switchBtn.style.alignItems = 'center';
     // 建立輸入框
     chatInput = document.createElement('input');
     chatInput.id = 'chatInputId';
@@ -188,7 +175,6 @@ function createSidebar() {
     sendBtn.style.justifyContent = 'center';
     sendBtn.style.alignItems = 'center';
     // 把輸入框和按鈕加到表單
-    // chatForm.appendChild(switchBtn);
     chatForm.appendChild(chatInput);
     chatForm.appendChild(sendBtn);
     // 把表單加到 body
@@ -478,7 +464,7 @@ function processNewsPage() {
     }
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'flashcard-added') {
+    if (msg.action === ACTION.FLASHCARD_ADDED) {
         alert(`已加入單字: ${msg.word}`);
     }
     else if (msg.action === 'get-text') {
@@ -491,7 +477,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         rawNews = result; // 儲存原始新聞內容
         return true; // 表示會異步回應
     }
-    else if (msg.action === 'toggle-sidebar') {
+    else if (msg.action === ACTION.TOGGLE_SIDEBAR) {
         toggleSidebar();
         sendResponse({
             success: true,
@@ -500,19 +486,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             },
         });
     }
-    else if (msg.action === 'check-sidebar') {
+    else if (msg.action === ACTION.CHECK_SIDEBAR) {
         sendResponse({
             success: true,
             data: {
                 isSidebarOpen,
             },
         });
-    }
-    else if (msg.action === 'analyze-text-background') {
-        const toggleVoc = (document.getElementById('vocabulary-toggle'));
-        if (toggleVoc) {
-            toggleVoc.disabled = false;
-        }
     }
 });
 /** analyze news and create 10 vocabulary */
@@ -647,6 +627,7 @@ async function translateNews(toClose = false) {
     }
     return true;
 }
+// --- sidebar 畫面操作 ---
 const cleanMain = () => {
     Array.from(main.children).forEach((child) => {
         main.removeChild(child);
