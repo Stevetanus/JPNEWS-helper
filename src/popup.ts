@@ -60,7 +60,7 @@ port.onMessage.addListener((msg) => {
   if (msg.action.startsWith('download_progress_')) {
     const feature = msg.action.replace('download_progress_', '');
     const percent = msg.data.percent;
-    // 動態更新 UI
+    // TODO:動態更新 UI，待想方法測試
     const el = document.getElementById(`${feature}-status`);
     if (el && !el?.textContent) {
       el.textContent = `${feature}: ${percent}%`;

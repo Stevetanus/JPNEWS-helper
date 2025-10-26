@@ -1,3 +1,4 @@
+// node addVersion.js [newVersion]
 const fs = require('fs');
 const path = require('path');
 

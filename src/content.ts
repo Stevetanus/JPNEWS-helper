@@ -36,6 +36,7 @@ let switchBtn: HTMLButtonElement | null = null;
 let userMsgList: HTMLDivElement[] = [];
 let botMsgList: HTMLDivElement[] = [];
 let controlsDiv: HTMLDivElement | null = null;
+let breakline: HTMLDivElement | null = null;
 let prevBtn: HTMLButtonElement | null = null;
 let nextBtn: HTMLButtonElement | null = null;
 let isSidebarOpen = false;
@@ -281,10 +282,10 @@ function createSidebar() {
     controlsDiv = document.createElement('div');
     controlsDiv.style.display = 'flex';
     controlsDiv.style.justifyContent = 'space-between';
-    controlsDiv.style.gap = '4px';
+    controlsDiv.style.gap = '8px';
     controlsDiv.style.position = 'absolute';
     controlsDiv.style.right = '16px';
-    controlsDiv.style.bottom = '106px';
+    controlsDiv.style.bottom = '100px';
     controlsDiv.style.padding = '4px';
     controlsDiv.style.zIndex = '999';
     controlsDiv.style.backgroundColor = 'lightgrey';
@@ -294,17 +295,26 @@ function createSidebar() {
     prevBtn.disabled = true; // 初始禁用
     prevBtn.style.zIndex = '999';
     prevBtn.style.fontSize = '16px';
-    prevBtn.style.padding = '4px';
+    prevBtn.style.padding = '2px';
+    prevBtn.style.border = '1px solid #333';
+    prevBtn.style.borderRadius = '4px';
     controlsDiv!.appendChild(prevBtn);
+
+    breakline = document.createElement('div');
+    breakline.style.width = '2px';
+    breakline.style.height = 'auto';
+    breakline.style.backgroundColor = '#333';
+    controlsDiv!.appendChild(breakline);
 
     // 下一則按鈕
     nextBtn = document.createElement('button');
     nextBtn.textContent = 'Next';
-
     nextBtn.disabled = true; // 初始禁用
     nextBtn.style.zIndex = '999';
     nextBtn.style.fontSize = '16px';
-    nextBtn.style.padding = '4px';
+    nextBtn.style.padding = '2px';
+    nextBtn.style.border = '1px solid #333';
+    nextBtn.style.borderRadius = '4px';
     controlsDiv!.appendChild(nextBtn);
 
     sidebar?.appendChild(controlsDiv);
@@ -441,7 +451,7 @@ function createMutuallyExclusiveToggles(
     // 初始 hide
     hideOverlay();
     const featureStatus: Record<
-      'summarizer' | 'translator' | 'language-model',
+      Feature,
       { success: boolean; message: string }
     > = response.data.featureStatus;
 

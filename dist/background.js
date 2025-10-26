@@ -509,13 +509,13 @@ and make sure the answer is not longer than the user's question. You always answ
 // Summarizer API
 async function initializeSummarizer() {
     if (typeof Summarizer === 'undefined') {
-        notifyPopup('summarizer', false, 'Summarizer not available');
+        notifyPopup('summarizer', false, 'Summarizer not available in this version of Chrome');
         console.warn('LanguageModel API not available in this context.');
         return;
     }
     const availability = await Summarizer.availability();
     if (availability !== 'available') {
-        notifyPopup('summarizer', false, 'Summarizer not ready (downloading...)');
+        notifyPopup('summarizer', false, 'Summarizer not available');
     }
     try {
         // Proceed to request batch or streaming summarization
@@ -544,7 +544,7 @@ async function initializeSummarizer() {
 }
 async function initializeTranslator() {
     if (typeof Translator === 'undefined') {
-        notifyPopup('translator', false, 'Translator not available');
+        notifyPopup('translator', false, 'Translator not available in this version of Chrome');
         console.warn('Translator API not available in this context.');
         return;
     }
@@ -553,7 +553,7 @@ async function initializeTranslator() {
         targetLanguage: 'en',
     });
     if (availability !== 'available') {
-        notifyPopup('translator', false, 'Translator not ready (downloading...)');
+        notifyPopup('translator', false, 'Translator not available');
     }
     try {
         session_t_jp_en = await Translator.create({
@@ -587,13 +587,13 @@ async function initializeTranslator() {
 }
 async function initializeLanguageModel() {
     if (typeof LanguageModel === 'undefined') {
-        notifyPopup('language-model', false, 'LanguageModel not available');
+        notifyPopup('language-model', false, 'LanguageModel not available in this version of Chrome');
         console.warn('LanguageModel API not available in this context.');
         return;
     }
     const availability = await LanguageModel.availability();
     if (availability !== 'available') {
-        notifyPopup('language-model', false, 'LanguageModel not ready, downlaoding...');
+        notifyPopup('language-model', false, 'LanguageModel not available');
     }
     try {
         session_l = await LanguageModel.create({

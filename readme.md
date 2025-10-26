@@ -75,8 +75,9 @@ and put the schema to the prompt
 ```
 git clone
 npm install
-npx tsc // .ts file compile to .js file
-node addVersion.js 0.1.7 // to add version on this extension
+npm run build // .ts file compile to .js file
+node addVersion.js 0.1.13 // to add version on this extension
+node moveFiles.js destination // to move files to destination folder
 ```
 2. Upload extension
 * Go to manage extensions (chrome://extensions/)
