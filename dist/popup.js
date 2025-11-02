@@ -40,7 +40,7 @@ languageSelect.addEventListener('change', async (event) => {
     }
 });
 (async () => {
-    const resF = await chrome.storage.local.get('featureStatus');
+    const resF = await chrome.storage.session.get('featureStatus');
     const resT = await chrome.storage.local.get('translatorLanguage');
     if (resF.featureStatus) {
         updateUI(resF.featureStatus);
@@ -119,7 +119,7 @@ async function getActiveTab() {
     return tab;
 }
 async function setFeatureStatus(featureStatus) {
-    chrome.storage.local.set({ featureStatus }, () => {
+    chrome.storage.session.set({ featureStatus }, () => {
         console.log('[JPNEWS] featureStatus saved:', featureStatus);
     });
 }

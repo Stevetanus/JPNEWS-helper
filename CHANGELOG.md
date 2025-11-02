@@ -1,4 +1,7 @@
-# 0.1.0 - 0.1.12
+# 0.1.0 - 0.1.14
+
+## 0.14
+1. move "featureStatus" storage to session storage, cleaning up when background script being cleaned
 
 ## 0.13
 1. Add utils/types to collect types

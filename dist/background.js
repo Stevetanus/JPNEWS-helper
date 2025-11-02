@@ -301,7 +301,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    const resF = await chrome.storage.local.get('featureStatus');
+    const resF = await chrome.storage.session.get('featureStatus');
     if (resF.featureStatus) {
         featureStatus = resF.featureStatus;
     }

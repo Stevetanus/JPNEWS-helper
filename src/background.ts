@@ -329,7 +329,7 @@ chrome.tabs.onUpdated.addListener(
     changeInfo: chrome.tabs.OnUpdatedInfo,
     tab: chrome.tabs.Tab
   ) => {
-    const resF = await chrome.storage.local.get('featureStatus');
+    const resF = await chrome.storage.session.get('featureStatus');
     if (resF.featureStatus) {
       featureStatus = resF.featureStatus;
     }
