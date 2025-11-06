@@ -172,26 +172,38 @@ chrome.runtime.onConnect.addListener((port) => {
       if (action === 'get-feature-status') {
         console.log('[JPNEWS] Feature status requested:', featureStatus);
 
-        const initPromises = Object.keys(featureStatus).map((key) => {
-          const feature = key as Feature;
-          if (!featureStatus[feature].success) {
-            switch (key) {
-              case 'language-model':
-                return initializeLanguageModel().catch((err) => {
-                  console.error('LanguageModel init error:', err);
-                });
-              case 'translator':
-                return initializeTranslator().catch((err) => {
-                  console.error('Translator init error:', err);
-                });
-              case 'summarizer':
-                return initializeSummarizer().catch((err) => {
-                  console.error('Summarizer init error:', err);
-                });
+        const initPromises = Object.entries(featureStatus).map(
+          async ([key, value]) => {
+            if (!value.success) {
+              switch (key) {
+                case 'language-model':
+                  try {
+                    return await initializeLanguageModel();
+                  } catch (err) {
+                    console.error('LanguageModel init error:', err);
+                    return null;
+                  }
+                case 'translator':
+                  try {
+                    return await initializeTranslator();
+                  } catch (err) {
+                    console.error('Translator init error:', err);
+                    return null;
+                  }
+                case 'summarizer':
+                  try {
+                    return await initializeSummarizer();
+                  } catch (err) {
+                    console.error('Summarizer init error:', err);
+                    return null;
+                  }
+                default:
+                  return Promise.resolve();
+              }
             }
+            return Promise.resolve(); // for features already initialized
           }
-          return Promise.resolve(); // for features already initialized
-        });
+        );
 
         await Promise.all(initPromises); // will never reject, errors are logged individually
 
@@ -569,6 +581,10 @@ async function initializeSummarizer() {
     notifyPopup('summarizer', false, 'Summarizer not available');
   }
   try {
+    if (session_s) {
+      notifyPopup('summarizer', true, 'Summarizer already initialized');
+      return;
+    }
     // Proceed to request batch or streaming summarization
     const options: {
       sharedContext: string;
@@ -682,6 +698,10 @@ async function initializeLanguageModel() {
   }
 
   try {
+    if (session_l) {
+      notifyPopup('language-model', true, 'LanguageModel already initialized');
+      return;
+    }
     session_l = await LanguageModel.create({
       initialPrompts: [
         {
