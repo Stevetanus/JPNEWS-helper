@@ -26,6 +26,12 @@ updateStatusBtn.addEventListener('click', async () => {
         overlay.style.display = 'none';
     }
 });
+const cleanBtn = document.getElementById('clean-btn');
+cleanBtn.addEventListener('click', async () => {
+    await cleanModelSession();
+    alert('Model session cleaned!');
+});
+console.log({ updateStatusBtn, cleanBtn });
 const languageSelect = document.getElementById('language-select');
 languageSelect.addEventListener('change', async (event) => {
     const target = event.target;
@@ -80,7 +86,7 @@ function updateUI(featureStatus) {
         const feature = k.replace('-status', '');
         const statusEl = document.getElementById(`${feature}-status`);
         const btnEl = document.getElementById(`${feature}-btn`);
-        if (v.success) {
+        if (v.model !== null) {
             statusEl.textContent = `✅ ${feature} ready`;
             btnEl.disabled = false;
         }
@@ -126,7 +132,11 @@ async function setFeatureStatus(featureStatus) {
 async function fetchFeatureStatusViaPort(port) {
     return new Promise((resolve, reject) => {
         const listener = (response) => {
+            console.log({ response });
+            if (response.action !== 'get-feature-status')
+                return;
             const featureStatus = response.data.featureStatus;
+            console.log('before resolve:', featureStatus);
             resolve(featureStatus);
             port.onMessage.removeListener(listener); // 移除 listener 避免累積
         };
@@ -151,6 +161,29 @@ async function featchBackGroundInfo() {
         console.error('Error fetching background info:', err);
     }
 }
+async function cleanModelSession() {
+    const featureStatus = await sendPortMessage('clean-model-session');
+    updateUI(featureStatus);
+    await setFeatureStatus(featureStatus);
+}
+// 用 port 包成 Promise
+const sendPortMessage = (action, text) => {
+    return new Promise((resolve, reject) => {
+        const listener = (msg) => {
+            if (msg.action === action) {
+                port.onMessage.removeListener(listener);
+                if (msg.success) {
+                    resolve(msg.data);
+                }
+                else {
+                    reject(msg.data);
+                }
+            }
+        };
+        port.onMessage.addListener(listener);
+        port.postMessage({ action, text });
+    });
+};
 /**
  *
  * @param port connect backend with port
@@ -162,24 +195,6 @@ async function analyzeAllViaPort(port, rawNews) {
     document.body.classList.add('loading');
     const overlay = document.getElementById('overlay');
     overlay.style.display = 'flex';
-    // 用 port 包成 Promise
-    const sendPortMessage = (action, text) => {
-        return new Promise((resolve, reject) => {
-            const listener = (msg) => {
-                if (msg.action === action) {
-                    port.onMessage.removeListener(listener);
-                    if (msg.success) {
-                        resolve(msg.data);
-                    }
-                    else {
-                        reject(msg.data);
-                    }
-                }
-            };
-            port.onMessage.addListener(listener);
-            port.postMessage({ action, text });
-        });
-    };
     try {
         const [translation, summary, analysis] = await Promise.all([
             sendPortMessage('translate-text', rawNews),

@@ -1,4 +1,7 @@
-# 0.1.0 - 0.1.14
+# 0.1.0 - 0.1.16
+
+## 0.16
+1. add clean model session button for users to clean session and update models again to reduce failed process of the extension
 
 ## 0.14
 1. move "featureStatus" storage to session storage, cleaning up when background script being cleaned

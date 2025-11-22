@@ -29,6 +29,11 @@ updateStatusBtn.addEventListener('click', async () => {
     overlay.style.display = 'none';
   }
 });
+const cleanBtn = <HTMLButtonElement>document.getElementById('clean-btn');
+cleanBtn.addEventListener('click', async () => {
+  await cleanModelSession();
+  alert('Model session cleaned!');
+});
 
 const languageSelect = document.getElementById('language-select');
 languageSelect!.addEventListener('change', async (event) => {
@@ -83,9 +88,7 @@ chatBtn.addEventListener('click', async () => {
 });
 const instruction = <HTMLDivElement>document.getElementById('instruction');
 
-function updateUI(
-  featureStatus: Record<string, { success: boolean; message: string }>
-) {
+function updateUI(featureStatus: FeatureStatus) {
   Object.entries(featureStatus).forEach(([k, v]) => {
     const feature = k.replace('-status', '');
     const statusEl = document.getElementById(`${feature}-status`);
@@ -93,7 +96,7 @@ function updateUI(
       `${feature}-btn`
     ) as HTMLButtonElement;
 
-    if (v.success) {
+    if (v.model !== null) {
       statusEl!.textContent = `✅ ${feature} ready`;
       btnEl.disabled = false;
     } else {
@@ -146,14 +149,16 @@ async function setFeatureStatus(
 
 async function fetchFeatureStatusViaPort(
   port: chrome.runtime.Port
-): Promise<Record<string, { success: boolean; message: string }>> {
+): Promise<FeatureStatus> {
   return new Promise((resolve, reject) => {
     const listener = (response: {
       success: boolean;
+      action: string;
       data: {
-        featureStatus: Record<string, { success: boolean; message: string }>;
+        featureStatus: FeatureStatus;
       };
     }) => {
+      if (response.action !== 'get-feature-status') return;
       const featureStatus = response.data.featureStatus;
       resolve(featureStatus);
       port.onMessage.removeListener(listener); // 移除 listener 避免累積
@@ -182,6 +187,30 @@ async function featchBackGroundInfo() {
   }
 }
 
+async function cleanModelSession() {
+  const featureStatus = await sendPortMessage('clean-model-session');
+  updateUI(featureStatus);
+  await setFeatureStatus(featureStatus);
+}
+
+// 用 port 包成 Promise
+const sendPortMessage = (action?: string, text?: string) => {
+  return new Promise<any>((resolve, reject) => {
+    const listener = (msg: any) => {
+      if (msg.action === action) {
+        port.onMessage.removeListener(listener);
+        if (msg.success) {
+          resolve(msg.data);
+        } else {
+          reject(msg.data);
+        }
+      }
+    };
+    port.onMessage.addListener(listener);
+    port.postMessage({ action, text });
+  });
+};
+
 /**
  *
  * @param port connect backend with port
@@ -193,24 +222,6 @@ async function analyzeAllViaPort(port: chrome.runtime.Port, rawNews: string) {
   document.body.classList.add('loading');
   const overlay = document.getElementById('overlay')!;
   overlay.style.display = 'flex';
-
-  // 用 port 包成 Promise
-  const sendPortMessage = (action: string, text: string) => {
-    return new Promise<any>((resolve, reject) => {
-      const listener = (msg: any) => {
-        if (msg.action === action) {
-          port.onMessage.removeListener(listener);
-          if (msg.success) {
-            resolve(msg.data);
-          } else {
-            reject(msg.data);
-          }
-        }
-      };
-      port.onMessage.addListener(listener);
-      port.postMessage({ action, text });
-    });
-  };
 
   try {
     const [translation, summary, analysis] = await Promise.all([

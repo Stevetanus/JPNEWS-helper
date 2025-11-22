@@ -3,14 +3,18 @@ let featureStatus = {
     summarizer: {
         success: false,
         message: 'Summarizer not initialized',
+        model: null,
     },
     translator: {
         success: false,
         message: 'Translator not initialized',
+        model: null,
+        model2: null,
     },
     'language-model': {
         success: false,
         message: 'LanguageModel not initialized',
+        model: null,
     },
 };
 /** Language Model session */
@@ -165,10 +169,11 @@ chrome.runtime.onConnect.addListener((port) => {
                 })();
                 return true;
             }
+            // 上面目前都沒有用到, 是交給 content.ts 處理
             if (action === 'get-feature-status') {
                 console.log('[JPNEWS] Feature status requested:', featureStatus);
                 const initPromises = Object.entries(featureStatus).map(async ([key, value]) => {
-                    if (!value.success) {
+                    if (!value.model || (key === 'translator' && !value.model2)) {
                         switch (key) {
                             case 'language-model':
                                 try {
@@ -206,6 +211,37 @@ chrome.runtime.onConnect.addListener((port) => {
                     action,
                     success: true,
                     data: { featureStatus },
+                });
+                return true;
+            }
+            if (action === 'clean-model-session') {
+                console.log('[JPNEWS] Cleaning model sessions as requested.');
+                session_l = null;
+                session_t_jp_en = null;
+                session_t_en_zhHant = null;
+                session_s = null;
+                featureStatus = {
+                    summarizer: {
+                        success: false,
+                        message: 'Summarizer not initialized',
+                        model: null,
+                    },
+                    translator: {
+                        success: false,
+                        message: 'Translator not initialized',
+                        model: null,
+                        model2: null,
+                    },
+                    'language-model': {
+                        success: false,
+                        message: 'LanguageModel not initialized',
+                        model: null,
+                    },
+                };
+                port.postMessage({
+                    action,
+                    data: featureStatus,
+                    success: true,
                 });
                 return true;
             }
@@ -522,17 +558,17 @@ and make sure the answer is not longer than the user's question. You always answ
 // Summarizer API
 async function initializeSummarizer() {
     if (typeof Summarizer === 'undefined') {
-        notifyPopup('summarizer', false, 'Summarizer not available in this version of Chrome');
+        updateFeature('summarizer', false, 'Summarizer not available in this version of Chrome');
         console.warn('LanguageModel API not available in this context.');
         return;
     }
     const availability = await Summarizer.availability();
     if (availability !== 'available') {
-        notifyPopup('summarizer', false, 'Summarizer not available');
+        updateFeature('summarizer', false, 'Summarizer not available');
     }
     try {
         if (session_s) {
-            notifyPopup('summarizer', true, 'Summarizer already initialized');
+            updateFeature('summarizer', true, 'Summarizer already initialized');
             return;
         }
         // Proceed to request batch or streaming summarization
@@ -552,16 +588,16 @@ async function initializeSummarizer() {
             },
         };
         session_s = await Summarizer.create(options);
-        notifyPopup('summarizer', true, 'Summarizer initialized successfully');
+        updateFeature('summarizer', true, 'Summarizer initialized successfully', session_s);
         console.log('[JPNEWS] Summarizer session created:', session_s);
     }
     catch (err) {
-        notifyPopup('summarizer', false, `Error creating summarizer session ${err}`);
+        updateFeature('summarizer', false, `Error creating summarizer session ${err}`);
     }
 }
 async function initializeTranslator() {
     if (typeof Translator === 'undefined') {
-        notifyPopup('translator', false, 'Translator not available in this version of Chrome');
+        updateFeature('translator', false, 'Translator not available in this version of Chrome');
         console.warn('Translator API not available in this context.');
         return;
     }
@@ -570,7 +606,7 @@ async function initializeTranslator() {
         targetLanguage: 'en',
     });
     if (availability !== 'available') {
-        notifyPopup('translator', false, 'Translator not available');
+        updateFeature('translator', false, 'Translator not available');
     }
     try {
         session_t_jp_en = await Translator.create({
@@ -596,25 +632,25 @@ async function initializeTranslator() {
         });
         console.log('[JPNEWs] Translator session created(jp -> en):', session_t_jp_en);
         console.log('[JPNEWs] Translator session created(en -> zh-Hant):', session_t_en_zhHant);
-        notifyPopup('translator', true, 'Translator initialized successfully');
+        updateFeature('translator', true, 'Translator initialized successfully', session_t_jp_en, session_t_en_zhHant);
     }
     catch (err) {
-        notifyPopup('translator', false, `Error creating Translator session ${err}`);
+        updateFeature('translator', false, `Error creating Translator session ${err}`);
     }
 }
 async function initializeLanguageModel() {
     if (typeof LanguageModel === 'undefined') {
-        notifyPopup('language-model', false, 'LanguageModel not available in this version of Chrome');
+        updateFeature('language-model', false, 'LanguageModel not available in this version of Chrome');
         console.warn('LanguageModel API not available in this context.');
         return;
     }
     const availability = await LanguageModel.availability();
     if (availability !== 'available') {
-        notifyPopup('language-model', false, 'LanguageModel not available');
+        updateFeature('language-model', false, 'LanguageModel not available');
     }
     try {
         if (session_l) {
-            notifyPopup('language-model', true, 'LanguageModel already initialized');
+            updateFeature('language-model', true, 'LanguageModel already initialized');
             return;
         }
         session_l = await LanguageModel.create({
@@ -636,10 +672,10 @@ async function initializeLanguageModel() {
             },
         });
         console.log('[JPNEWS] Language model session created:', session_l);
-        notifyPopup('language-model', true, 'LanguageModel initialized successfully');
+        updateFeature('language-model', true, 'LanguageModel initialized successfully', session_l);
     }
     catch (err) {
-        notifyPopup('language-model', false, `Error creating LanguageModel session, ${err}`);
+        updateFeature('language-model', false, `Error creating LanguageModel session, ${err}`);
     }
 }
 // 在 monitor 裡傳進度
@@ -664,10 +700,12 @@ function sendDownloadProgress(percent, feature) {
  * @param success Whether the feature is successfully initialized.
  * @param message A message to display in the popup.
  */
-function notifyPopup(feature, success, message) {
+function updateFeature(feature, success, message, model = null, model2 = null) {
     featureStatus[feature] = {
         success,
         message,
+        model,
+        model2,
     };
 }
 function safeParseModelJson(raw) {
