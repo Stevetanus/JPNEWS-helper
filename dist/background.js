@@ -173,7 +173,8 @@ chrome.runtime.onConnect.addListener((port) => {
             if (action === 'get-feature-status') {
                 console.log('[JPNEWS] Feature status requested:', featureStatus);
                 const initPromises = Object.entries(featureStatus).map(async ([key, value]) => {
-                    if (!value.model || (key === 'translator' && !value.model2)) {
+                    if (value.model === null ||
+                        (key === 'translator' && value.model2 === null)) {
                         switch (key) {
                             case 'language-model':
                                 try {

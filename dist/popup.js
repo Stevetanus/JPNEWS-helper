@@ -31,7 +31,6 @@ cleanBtn.addEventListener('click', async () => {
     await cleanModelSession();
     alert('Model session cleaned!');
 });
-console.log({ updateStatusBtn, cleanBtn });
 const languageSelect = document.getElementById('language-select');
 languageSelect.addEventListener('change', async (event) => {
     const target = event.target;
@@ -86,7 +85,8 @@ function updateUI(featureStatus) {
         const feature = k.replace('-status', '');
         const statusEl = document.getElementById(`${feature}-status`);
         const btnEl = document.getElementById(`${feature}-btn`);
-        if (v.model !== null) {
+        // backend will return empty object if models are ready
+        if (v.model !== null || (k === 'translator' && v.model2 !== null)) {
             statusEl.textContent = `✅ ${feature} ready`;
             btnEl.disabled = false;
         }
@@ -131,12 +131,17 @@ async function setFeatureStatus(featureStatus) {
 }
 async function fetchFeatureStatusViaPort(port) {
     return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            port.onMessage.removeListener(listener);
+            reject(new Error('fetchFeatureStatusViaPort timeout'));
+        }, 5000); // 5 秒防呆
         const listener = (response) => {
-            console.log({ response });
+            // 之前沒有這個判斷時, 會因為後端傳 pecentage 訊息觸發而取消此監聽器
             if (response.action !== 'get-feature-status')
                 return;
+            clearTimeout(timeoutId);
+            port.onMessage.removeListener(listener);
             const featureStatus = response.data.featureStatus;
-            console.log('before resolve:', featureStatus);
             resolve(featureStatus);
             port.onMessage.removeListener(listener); // 移除 listener 避免累積
         };

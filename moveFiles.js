@@ -57,7 +57,7 @@ for (const item of itemsToMove) {
     const manifest = JSON.parse(fs.readFileSync(destPath, 'utf-8'));
     manifest.name = 'JP News Helper';
     fs.writeFileSync(destPath, JSON.stringify(manifest, null, 2));
-    console.log(`✏️  Renaming name in ${item}`);
+    console.log(`✏️  Remove "TEST" in ${item}`);
   }
 }
 

@@ -179,7 +179,10 @@ chrome.runtime.onConnect.addListener((port) => {
 
         const initPromises = Object.entries(featureStatus).map(
           async ([key, value]) => {
-            if (!value.model || (key === 'translator' && !value.model2)) {
+            if (
+              value.model === null ||
+              (key === 'translator' && value.model2 === null)
+            ) {
               switch (key) {
                 case 'language-model':
                   try {

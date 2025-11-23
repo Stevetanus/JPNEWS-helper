@@ -96,7 +96,8 @@ function updateUI(featureStatus: FeatureStatus) {
       `${feature}-btn`
     ) as HTMLButtonElement;
 
-    if (v.model !== null) {
+    // backend will return empty object if models are ready
+    if (v.model !== null || (k === 'translator' && v.model2 !== null)) {
       statusEl!.textContent = `✅ ${feature} ready`;
       btnEl.disabled = false;
     } else {
@@ -151,6 +152,11 @@ async function fetchFeatureStatusViaPort(
   port: chrome.runtime.Port
 ): Promise<FeatureStatus> {
   return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      port.onMessage.removeListener(listener);
+      reject(new Error('fetchFeatureStatusViaPort timeout'));
+    }, 5000); // 5 秒防呆
+
     const listener = (response: {
       success: boolean;
       action: string;
@@ -158,7 +164,12 @@ async function fetchFeatureStatusViaPort(
         featureStatus: FeatureStatus;
       };
     }) => {
+      // 之前沒有這個判斷時, 會因為後端傳 pecentage 訊息觸發而取消此監聽器
       if (response.action !== 'get-feature-status') return;
+
+      clearTimeout(timeoutId);
+      port.onMessage.removeListener(listener);
+
       const featureStatus = response.data.featureStatus;
       resolve(featureStatus);
       port.onMessage.removeListener(listener); // 移除 listener 避免累積
