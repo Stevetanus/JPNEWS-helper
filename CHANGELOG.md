@@ -1,5 +1,9 @@
 # 0.1.0 - 0.1.17
 
+## 0.1.18
+1. When detected session is an empty object, will also trigger update models.
+2. Comment out sendDownloadProgress function for now, because it may let the UI only show percentage but not feature status at this time.
+
 ## 0.1.17
 1. update status button will update models when the language model sessions are ended(value === null)
 

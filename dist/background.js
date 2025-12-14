@@ -174,7 +174,8 @@ chrome.runtime.onConnect.addListener((port) => {
                 console.log('[JPNEWS] Feature status requested:', featureStatus);
                 const initPromises = Object.entries(featureStatus).map(async ([key, value]) => {
                     if (value.model === null ||
-                        (key === 'translator' && value.model2 === null)) {
+                        (key === 'translator' && value.model2 === null) ||
+                        Object.keys(value.model).length === 0) {
                         switch (key) {
                             case 'language-model':
                                 try {
@@ -581,7 +582,7 @@ async function initializeSummarizer() {
             monitor(m) {
                 m.addEventListener('downloadprogress', (e) => {
                     console.log(`[JPNEWS] Summarizer Downloaded ${e.loaded * 100}%`);
-                    sendDownloadProgress((e.loaded * 100).toFixed(1), 'summarizer');
+                    // sendDownloadProgress((e.loaded * 100).toFixed(1), 'summarizer');
                     if (e.loaded === 1) {
                         console.log('[JPNEWs] Summarizer fully downloaded. Ready to use!');
                     }
@@ -665,7 +666,7 @@ async function initializeLanguageModel() {
                 m.addEventListener('downloadprogress', (e) => {
                     const percent = (e.loaded * 100).toFixed(1);
                     console.log(`[JPNEWS] Language Model Downloaded ${percent}%`);
-                    sendDownloadProgress(percent, 'language-model');
+                    // sendDownloadProgress(percent, 'language-model');
                     if (e.loaded === 1) {
                         console.log('[JPNEWs] Language Model fully downloaded. Ready to use!');
                     }
