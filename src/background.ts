@@ -622,7 +622,12 @@ async function initializeSummarizer() {
   }
   try {
     if (session_s) {
-      updateFeature('summarizer', true, 'Summarizer already initialized');
+      updateFeature(
+        'summarizer',
+        true,
+        'Summarizer already initialized',
+        session_s
+      );
       return;
     }
     // Proceed to request batch or streaming summarization
@@ -753,7 +758,8 @@ async function initializeLanguageModel() {
       updateFeature(
         'language-model',
         true,
-        'LanguageModel already initialized'
+        'LanguageModel already initialized',
+        session_l
       );
       return;
     }

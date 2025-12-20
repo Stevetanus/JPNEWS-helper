@@ -570,7 +570,7 @@ async function initializeSummarizer() {
     }
     try {
         if (session_s) {
-            updateFeature('summarizer', true, 'Summarizer already initialized');
+            updateFeature('summarizer', true, 'Summarizer already initialized', session_s);
             return;
         }
         // Proceed to request batch or streaming summarization
@@ -652,7 +652,7 @@ async function initializeLanguageModel() {
     }
     try {
         if (session_l) {
-            updateFeature('language-model', true, 'LanguageModel already initialized');
+            updateFeature('language-model', true, 'LanguageModel already initialized', session_l);
             return;
         }
         session_l = await LanguageModel.create({

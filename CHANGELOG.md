@@ -1,4 +1,7 @@
-# 0.1.0 - 0.1.17
+# 0.1.0 - 0.1.19
+
+## 0.1.19
+1. When summarizer and language-model features are initialized, the UI should be green correct sign.
 
 ## 0.1.18
 1. When detected session is an empty object, will also trigger update models.
