@@ -413,6 +413,7 @@ async function toggleSidebarFromBackground() {
 /** get value from extension storage local */
 async function getFromStorage<T = any>(key: string): Promise<T | null> {
   const ki = `${pageId}-${key}`;
+  console.log('[JPNEWS] Getting from storage:', ki);
   return new Promise((resolve) => {
     chrome.storage.local.get(ki, (res) => {
       if (res[ki]) {
@@ -427,6 +428,7 @@ async function getFromStorage<T = any>(key: string): Promise<T | null> {
 /** set value to extension storage local */
 async function setToStorage<T = any>(key: string, value: T): Promise<void> {
   const ki = `${pageId}-${key}`;
+  console.log('[JPNEWS] Setting to storage:', { ki, value });
   return new Promise((resolve) => {
     chrome.storage.local.set({ [ki]: value }, () => {
       resolve();

@@ -1,4 +1,7 @@
-# 0.1.0 - 0.1.19
+# 0.1.0 - 0.1.20
+
+## 0.1.20
+1. enhance to 10 secs limit for loading feature to prevent early rejection when the features are loading. 
 
 ## 0.1.19
 1. When summarizer and language-model features are initialized, the UI should be green correct sign.

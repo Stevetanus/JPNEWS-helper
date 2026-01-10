@@ -131,20 +131,24 @@ async function setFeatureStatus(featureStatus) {
 }
 async function fetchFeatureStatusViaPort(port) {
     return new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-            port.onMessage.removeListener(listener);
-            reject(new Error('fetchFeatureStatusViaPort timeout'));
-        }, 5000); // 5 秒防呆
-        const listener = (response) => {
+        let timeoutId;
+        let listener;
+        listener = (response) => {
             // 之前沒有這個判斷時, 會因為後端傳 pecentage 訊息觸發而取消此監聽器
             if (response.action !== 'get-feature-status')
                 return;
-            clearTimeout(timeoutId);
-            port.onMessage.removeListener(listener);
+            if (timeoutId !== undefined)
+                clearTimeout(timeoutId);
+            if (listener)
+                port.onMessage.removeListener(listener);
             const featureStatus = response.data.featureStatus;
             resolve(featureStatus);
-            port.onMessage.removeListener(listener); // 移除 listener 避免累積
         };
+        timeoutId = window.setTimeout(() => {
+            if (listener)
+                port.onMessage.removeListener(listener);
+            reject(new Error('fetchFeatureStatusViaPort timeout'));
+        }, 10000);
         port.onMessage.addListener(listener);
         port.postMessage({ action: 'get-feature-status' });
     });
