@@ -1,4 +1,9 @@
-# 0.1.0 - 0.1.20
+# 0.1.0 - 0.1.21
+
+## 0.1.21
+1. catch error when content.js not loaded for `check-side-bar` action.
+2. when background.js have no pageId defined in `getFromStorage` function, will call `process-new-page` action for content.js to process the page again.
+3. add `isNotSupportedPage` to content.js to prevent running on main page of NHK NEWS EASY.
 
 ## 0.1.20
 1. enhance to 10 secs limit for loading feature to prevent early rejection when the features are loading. 

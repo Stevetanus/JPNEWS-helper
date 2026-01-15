@@ -355,6 +355,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (action === 'nhk-news-page') {
+    console.log('[JPNEWS] Received pageId:', message.pageId);
     pageId = message.pageId;
     sendResponse({ success: true });
   }
@@ -401,7 +402,8 @@ async function toggleSidebarFromBackground() {
       return;
     }
 
-    const response = await chrome.tabs.sendMessage(activeTab.id, {
+    const tabId = activeTab.id!;
+    const response = await chrome.tabs.sendMessage(tabId, {
       action: 'toggle-sidebar',
     });
     console.log('[JPNEWS] Sidebar toggled successfully:', response);
@@ -410,8 +412,23 @@ async function toggleSidebarFromBackground() {
   }
 }
 
-/** get value from extension storage local */
 async function getFromStorage<T = any>(key: string): Promise<T | null> {
+  if (!pageId) {
+    const tabs = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const activeTab = tabs[0];
+
+    if (activeTab?.id) {
+      chrome.tabs.sendMessage(activeTab.id, {
+        action: 'process-news-page',
+      });
+    } else {
+      console.warn('[JPNEWS] Could not get active tab id to process news page');
+    }
+    return null;
+  }
   const ki = `${pageId}-${key}`;
   console.log('[JPNEWS] Getting from storage:', ki);
   return new Promise((resolve) => {

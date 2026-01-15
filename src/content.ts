@@ -7,12 +7,18 @@ console.log('[JPNEWS] Document ready state:', document.readyState);
 /*** Raw news text without title. This will be filled after parsing the article.*/
 let rawNews = '';
 const nhkNewsEasyUrl = 'https://news.web.nhk/news/easy/';
-processNewsPage();
+const pageResult = processNewsPage();
+let isNotSupportedPage = false;
+if (pageResult === 'no-page-id') {
+  console.error('[JPNEWS] No page ID found, cannot process news page.');
+  isNotSupportedPage = true;
+}
 
 const ACTION = {
   FLASHCARD_ADDED: 'flashcard-added',
   TOGGLE_SIDEBAR: 'toggle-sidebar',
   CHECK_SIDEBAR: 'check-sidebar',
+  PROCESS_NEWS_PAGE: 'process-news-page',
 };
 
 let mainStatus: 'chat' | 'sum' | 'analyze' | 'empty' = 'empty';
@@ -503,6 +509,7 @@ function makeDraggable(dragHandle: HTMLElement, el: HTMLElement) {
 }
 
 function toggleSidebar(e?: KeyboardEvent) {
+  if (isNotSupportedPage) return;
   if (sidebar && document.body.contains(sidebar)) {
     // 移除翻譯
     isSidebarOpen = false;
@@ -523,6 +530,13 @@ function processNewsPage() {
     const pageId = lastSegment.endsWith('.html')
       ? lastSegment.replace('.html', '')
       : lastSegment;
+    if (!pageId) {
+      console.error(
+        '[JPNEWS] Cannot extract pageId from URL:',
+        window.location.href
+      );
+      return 'no-page-id';
+    }
 
     // 主動通知 background
     chrome.runtime.sendMessage({
@@ -567,6 +581,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         isSidebarOpen,
       },
     });
+  } else if (msg.action === ACTION.PROCESS_NEWS_PAGE) {
+    processNewsPage();
+    sendResponse({ success: true });
   }
 });
 /** analyze news and create 10 vocabulary */

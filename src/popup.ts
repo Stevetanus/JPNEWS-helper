@@ -74,10 +74,14 @@ port.onMessage.addListener((msg) => {
 });
 // sidebar 狀態檢查
 (async () => {
-  const isSidebarOpen = await getSidebarOpen();
-  if (isSidebarOpen) {
-    const chatBtn = document.getElementById('chat-btn') as HTMLButtonElement;
-    chatBtn.textContent = 'Close Chat';
+  try {
+    const isSidebarOpen = await getSidebarOpen();
+    if (isSidebarOpen) {
+      const chatBtn = document.getElementById('chat-btn') as HTMLButtonElement;
+      chatBtn.textContent = 'Close Chat';
+    }
+  } catch (err) {
+    console.error('[JPNEWS] Error checking sidebar status:', err);
   }
 })();
 
