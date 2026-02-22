@@ -84,11 +84,14 @@ node moveFiles.js destination // to move files to destination folder
 * Click **Load unpacked** and select the this code folder to upload
 3. Start to use
 * Go to [NHK News Easy](https://www3.nhk.or.jp/news/easy/) and choose a news then start to use JP NEWS Helper from the right top extension icon.
-4. Upload models
-* Press **upload models** button, it will tell background.js to download language models, respectively are Summarizer, Translator, Language Model.
-5. Sidebar
+4. Update models
+* Press **update models** button, it will tell background.js to download language models, respectively are Summarizer, Translator, Language Model. Please keep in mind **Language Model** session takes more time and more space to create, and I set a timeout of 30 secs. If the timeout reaches, please just click **update models** again.
+
+From the [Prompt API docs](https://developer.chrome.com/docs/ai/prompt-api)
+> At least 22 GB of free space on the volume that contains your Chrome profile
+1. Sidebar
 * Press ctrl + j to toggle sidebar, in the sidebar, there are four function to interact with language model and give you more information about the news you are going to learn.
-6. Beyond your mind
+1. Beyond your mind
 * Try to use chatbox to chat with language model for anything you want to know.
 
 ## Photos

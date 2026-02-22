@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>JP NEWS Helper</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="jp-news-helper">JP NEWS Helper</h1>
+<hr>
+<p>JP News Helper is an extension to help users learn Japanese through <a href="https://news.web.nhk/news/easy/">NHK News Easy</a>.</p>
+<h2 id="download-extension-from-chrome-web-store"><a href="https://chromewebstore.google.com/detail/jp-news-helper/fnicbbaieoffijhppcobelcfilphgcon">Download extension from chrome web store</a></h2>
+<h2 id="intro-video"><a href="https://youtu.be/fV98dxeJ_vU">Intro Video</a></h2>
+<h2 id="example">Example:</h2>
+<p>Use extension on news from NHK NEWS WEB EASY(<a href="https://news.web.nhk/news/easy/">https://news.web.nhk/news/easy/</a>)</p>
+<p><img src="file:////Users/hsien-chengwang/Desktop/ngjp/jpnews/static/jpnewshelper_0.png" alt="Full Screen"></p>
+<h2 id="features">Features</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Summarize</strong></td>
+<td>Summarize the news</td>
+</tr>
+<tr>
+<td><strong>Translate</strong></td>
+<td>Translate the news title and content, and show translations below the original lines</td>
+</tr>
+<tr>
+<td><strong>Vocabulary</strong></td>
+<td>Extract 10 key words to learn from the news</td>
+</tr>
+<tr>
+<td><strong>Chat</strong></td>
+<td>Chat in real time about the news</td>
+</tr>
+</tbody>
+</table>
+<h3 id="summarize">Summarize</h3>
+<p>Use Chrome built-in Summarizer to summarize text. Option given below:</p>
+<pre><code>sharedContext: 'This is a news from NHK News',
+type: 'teaser',
+format: 'plain-text',
+length: 'medium',
+</code></pre>
+<h3 id="translate">Translate</h3>
+<p>Use Chrome built-in Translator to summarize text.</p>
+<h3 id="vocabulary">Vocabulary</h3>
+<p>Use Chrome build-in Language Model to analyze the news and extract 10 vocabulary. InitialPrompts to give the model system info.</p>
+<pre><code>      initialPrompts: [
+        {
+          role: 'system',
+          content:
+            'You are a vocabulary extraction assistant give back the words in English, Chinese and Japanese. Also, you give back the detail descripiton of the words in English.',
+        },
+      ],
+</code></pre>
+<p>For the response given back from model to be <code>JSON</code> structure, give the schema below</p>
+<pre><code>const schema = {
+    type: 'array',
+    minItems: 10,
+    maxItems: 10,
+    items: {
+      type: 'object',
+      properties: {
+        english: { type: 'string' },
+        japanese: { type: 'string' },
+        description: { type: 'string' },
+      },
+      // required: ['english', 'chinese', 'japanese'],
+      required: ['english', 'japanese', 'description'],
+      additionalProperties: false,
+    },
+  };
+</code></pre>
+<p>and put the schema to the prompt</p>
+<pre><code>    {
+      responseConstraint: schema,
+    }
+</code></pre>
+<h3 id="how-to-use-locally">How to use locally:</h3>
+<ol>
+<li>Code preparation</li>
+</ol>
+<pre><code>git clone
+npm install
+npm run build // .ts file compile to .js file
+node addVersion.js 0.1.13 // to add version on this extension
+node moveFiles.js destination // to move files to destination folder
+</code></pre>
+<ol start="2">
+<li>Upload extension</li>
+</ol>
+<ul>
+<li>Go to manage extensions (chrome://extensions/)</li>
+<li>Click <strong>Load unpacked</strong> and select the this code folder to upload</li>
+</ul>
+<ol start="3">
+<li>Start to use</li>
+</ol>
+<ul>
+<li>Go to <a href="https://www3.nhk.or.jp/news/easy/">NHK News Easy</a> and choose a news then start to use JP NEWS Helper from the right top extension icon.</li>
+</ul>
+<ol start="4">
+<li>Update models</li>
+</ol>
+<ul>
+<li>Press <strong>update models</strong> button, it will tell background.js to download language models, respectively are Summarizer, Translator, Language Model. Please keep in mind <strong>Language Model</strong> session takes more time and more space to create, and I set a timeout of 30 secs.</li>
+</ul>
+<blockquote>
+<p>At least 22 GB of free space on the volume that contains your Chrome profile</p>
+</blockquote>
+<ol>
+<li>Sidebar</li>
+</ol>
+<ul>
+<li>Press ctrl + j to toggle sidebar, in the sidebar, there are four function to interact with language model and give you more information about the news you are going to learn.</li>
+</ul>
+<ol>
+<li>Beyond your mind</li>
+</ol>
+<ul>
+<li>Try to use chatbox to chat with language model for anything you want to know.</li>
+</ul>
+<h2 id="photos">Photos</h2>
+<h3 id="extension-popup">Extension Popup</h3>
+<p>First, press <strong>update models</strong> to download models <a href="https://developer.chrome.com/docs/ai/summarizer-api">Summarizer</a>, <a href="https://developer.chrome.com/docs/ai/translator-api">Translator</a> and <a href="https://developer.chrome.com/docs/ai/prompt-api">Language Model</a> built in Google Chrome, so you can use the feature via API to the models just in website.</p>
+<p><img src="file:////Users/hsien-chengwang/Desktop/ngjp/jpnews/static/jpnewshelper_3.png" alt="Extension Popup"></p>
+<h3 id="summary">Summary</h3>
+<ul>
+<li>📝 <strong>Summarize</strong> → Summarize the news</li>
+</ul>
+<p><img src="file:////Users/hsien-chengwang/Desktop/ngjp/jpnews/static/jpnewshelper_1.png" alt="Summary"></p>
+<h3 id="vocabulary-1">Vocabulary</h3>
+<ul>
+<li>📚 <strong>Vocabulary</strong> → Extract 10 words to learn</li>
+</ul>
+<p><img src="file:////Users/hsien-chengwang/Desktop/ngjp/jpnews/static/jpnewshelper_4.png" alt="News Vocabulary"></p>
+<h3 id="chat">Chat</h3>
+<ul>
+<li>💬 <strong>Chat</strong> → Use input at the bottom to chat with Language Model about the news.</li>
+</ul>
+<p><img src="file:////Users/hsien-chengwang/Desktop/ngjp/jpnews/static/jpnewshelper_5.png" alt="Chat with AI"></p>
+
+            
+            
+        </body>
+        </html>

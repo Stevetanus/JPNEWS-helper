@@ -1,5 +1,8 @@
 # 0.1.0 - 0.1.21
 
+## 0.1.22
+1. enhace update models' timeout to 30 secs.
+
 ## 0.1.21
 1. catch error when content.js not loaded for `check-side-bar` action.
 2. when background.js have no pageId defined in `getFromStorage` function, will call `process-new-page` action for content.js to process the page again.

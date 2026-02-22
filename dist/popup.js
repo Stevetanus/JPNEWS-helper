@@ -153,7 +153,7 @@ async function fetchFeatureStatusViaPort(port) {
             if (listener)
                 port.onMessage.removeListener(listener);
             reject(new Error('fetchFeatureStatusViaPort timeout'));
-        }, 10000);
+        }, 30000);
         port.onMessage.addListener(listener);
         port.postMessage({ action: 'get-feature-status' });
     });
